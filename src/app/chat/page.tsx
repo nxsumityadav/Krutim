@@ -522,13 +522,12 @@ export default function ChatPage() {
     };
 
     return (
-        <div className="flex flex-col h-[100svh] font-sans bg-[var(--chat-surface)] text-[var(--chat-text)]">
+        <div className="flex flex-col h-svh font-sans bg-[var(--chat-surface)] text-[var(--chat-text)] overflow-hidden">
             {/* Header */}
             <header className={cn(
-                "sticky top-0 z-50 shrink-0 px-4 h-[56px] py-2 flex items-center justify-between",
-                "bg-[var(--chat-surface)] dark:bg-background/95 backdrop-blur-sm"
+                "sticky top-0 z-50 shrink-0 px-4 h-[56px] border-b border-black/5 dark:border-white/5 flex items-center justify-between",
+                "bg-[var(--chat-surface)] dark:bg-background/95 backdrop-blur-md"
             )}>
-                {/* Header content depends on loaded state, so we wrap in mounted check */}
                 {mounted ? (
                     <>
                         {/* Placeholder for left side to keep model selector centered */}
@@ -635,27 +634,26 @@ export default function ChatPage() {
                             </div>
                         </div>
 
-                        {/* Right side Actions */}
-                        <div className="flex items-center justify-end w-10 shrink-0">
-                            {messages.length > 0 && (
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={handleClearChat}
-                                    className={cn(
-                                        "h-10 w-10 rounded-full",
-                                        "bg-white/80 text-[var(--chat-text)] dark:bg-[#2A2A2A] dark:text-foreground"
-                                    )}
-                                >
-                                    <span className="material-symbols-rounded text-[24px]">delete</span>
-                                </Button>
-                            )}
+                        {/* Right side Actions (Delete) */}
+                        <div className="w-10 shrink-0 flex justify-end">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={handleClearChat}
+                                className={cn(
+                                    "h-10 w-10 rounded-full transition-opacity",
+                                    messages.length === 0 ? "opacity-0 pointer-events-none" : "opacity-100",
+                                    "bg-black/5 text-[var(--chat-text)] dark:bg-[#2A2A2A] dark:text-foreground"
+                                )}
+                            >
+                                <span className="material-symbols-rounded text-[22px]">delete</span>
+                            </Button>
                         </div>
                     </>
                 ) : (
-                    <div className="w-full h-10 flex items-center justify-center">
-                        <span className="text-[20px] font-semibold text-[var(--chat-text)] dark:text-foreground opacity-50">
-                            Select model
+                    <div className="w-full h-full flex items-center justify-center">
+                        <span className="text-[18px] font-semibold text-[var(--chat-text)] dark:text-foreground opacity-30">
+                            Krutim
                         </span>
                     </div>
                 )}
@@ -796,7 +794,7 @@ export default function ChatPage() {
 
                 {/* Input Area */}
                 <div className={cn(
-                    "absolute bottom-0 left-0 right-0 p-4 md:p-4 pb-8 md:pb-4",
+                    "shrink-0 p-4 pb-[max(2rem,env(safe-area-inset-bottom)+1rem)] md:pb-6",
                     "bg-gradient-to-t from-[var(--chat-surface)] via-[var(--chat-surface)] to-transparent"
                 )}>
                     <div className="max-w-3xl mx-auto w-full">
