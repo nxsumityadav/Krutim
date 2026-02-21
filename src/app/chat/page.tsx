@@ -2,13 +2,21 @@
 
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Send, Bot, User, Loader2, AlertCircle, Trash2, Plus, BrainCircuit, Search, Mic, AudioLines, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { MarkdownRenderer } from "@/components/markdown-renderer";
+import { useTheme } from "@/components/theme-provider";
+import { useChatState } from "@/components/chat-state-provider";
+import { KrutimLogo } from "@/components/krutim-logo";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+    Sheet,
+    SheetClose,
+    SheetContent,
+    SheetHeader,
+    SheetTitle,
+    SheetTrigger,
+} from "@/components/ui/sheet";
 import {
     Select,
     SelectContent,
@@ -28,6 +36,156 @@ interface Message {
     role: "user" | "assistant";
     content: string;
     reasoning?: string;
+    reasoningDuration?: number;
+    model?: string;
+    images?: string[]; // base64 data URLs for pasted/dropped images
+}
+
+// Parse <think>...</think> tags from content string
+// Returns { reasoning, content } with think tags stripped
+// Handles: closed tags, unclosed tags (streaming), partial opening tags at end of chunk
+function parseThinkTags(raw: string): { reasoning: string; content: string } {
+    // First extract all fully closed <think>...</think> blocks
+    const thinkRegex = /<think>([\s\S]*?)<\/think>/gi;
+    let reasoning = "";
+    let match;
+    while ((match = thinkRegex.exec(raw)) !== null) {
+        reasoning += match[1].trim() + "\n";
+    }
+    // Remove all closed think blocks from content
+    let content = raw.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+
+    // Handle unclosed <think> tag (still streaming reasoning)
+    // Find the last <think> that has no matching </think> after it
+    const lastOpenIdx = content.lastIndexOf("<think>");
+    const lastOpenIdxCI = raw.toLowerCase().lastIndexOf("<think>");
+    if (lastOpenIdxCI !== -1) {
+        const afterLastOpen = raw.substring(lastOpenIdxCI + 7);
+        const hasClose = /<\/think>/i.test(afterLastOpen);
+        if (!hasClose) {
+            // Unclosed think tag — content before it is visible, rest is reasoning
+            reasoning += afterLastOpen.trim();
+            const contentBefore = raw.substring(0, lastOpenIdxCI).replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+            return { reasoning: reasoning.trim(), content: contentBefore };
+        }
+    }
+
+    // Handle partial opening tag at very end of chunk (e.g., "<thi" or "<think")
+    // This prevents partial tags from appearing in rendered content
+    const partialMatch = content.match(/<t(?:h(?:i(?:n(?:k)?)?)?)?$/i);
+    if (partialMatch) {
+        content = content.substring(0, partialMatch.index).trim();
+    }
+
+    return { reasoning: reasoning.trim(), content };
+}
+
+function ThinkingBlock({
+    reasoning,
+    isStreaming,
+    duration,
+    isDark,
+}: {
+    reasoning: string;
+    isStreaming: boolean;
+    duration?: number;
+    isDark: boolean;
+}) {
+    const [isOpen, setIsOpen] = useState(false);
+    const [elapsed, setElapsed] = useState(0);
+    const startTimeRef = useRef<number>(Date.now());
+
+    useEffect(() => {
+        if (!isStreaming) return;
+        startTimeRef.current = Date.now();
+        const interval = setInterval(() => {
+            setElapsed(Math.floor((Date.now() - startTimeRef.current) / 1000));
+        }, 1000);
+        return () => clearInterval(interval);
+    }, [isStreaming]);
+
+    const displayDuration = isStreaming ? elapsed : (duration ?? elapsed);
+
+    // While actively thinking (streaming reasoning, no content yet)
+    if (isStreaming) {
+        return (
+            <div className="mb-4">
+                {/* Shimmer header */}
+                <motion.div
+                    className={cn(
+                        "flex items-center gap-2 text-[13px] font-medium mb-3",
+                        isDark ? "text-foreground/60" : "text-muted-foreground"
+                    )}
+                    animate={{ opacity: [0.4, 1, 0.4] }}
+                    transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                >
+                    <span className="material-symbols-rounded text-[16px]">psychology</span>
+                    <span>Thinking{elapsed > 0 ? ` for ${elapsed}s` : "..."}</span>
+                </motion.div>
+
+                {/* Visible reasoning while streaming */}
+                <div className={cn(
+                    "relative pl-5 ml-2 max-h-[300px] overflow-y-auto",
+                    isDark ? "border-l border-white/10" : "border-l border-black/10"
+                )}>
+                    <div className={cn(
+                        "text-[13px] leading-relaxed",
+                        isDark ? "text-foreground/40" : "text-muted-foreground/70"
+                    )}>
+                        <MarkdownRenderer content={reasoning} isDark={isDark} />
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // Collapsed state after thinking is done
+    return (
+        <div className="mb-4">
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                className={cn(
+                    "flex items-center gap-1.5 text-[13px] transition-colors cursor-pointer",
+                    isDark
+                        ? "text-foreground/40 hover:text-foreground/60"
+                        : "text-muted-foreground/70 hover:text-muted-foreground"
+                )}
+            >
+                <span className="material-symbols-rounded text-[14px]">psychology</span>
+                <span>Thought for {displayDuration}s</span>
+                <motion.span
+                    className="material-symbols-rounded text-[16px]"
+                    animate={{ rotate: isOpen ? 90 : 0 }}
+                    transition={{ duration: 0.15 }}
+                >
+                    chevron_right
+                </motion.span>
+            </button>
+            <AnimatePresence>
+                {isOpen && (
+                    <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden"
+                    >
+                        <div className={cn(
+                            "relative pl-5 ml-2 mt-3 max-h-[400px] overflow-y-auto",
+                            isDark ? "border-l border-white/10" : "border-l border-black/10"
+                        )}>
+                            <div className={cn(
+                                "text-[13px] leading-relaxed",
+                                isDark ? "text-foreground/40" : "text-muted-foreground/70"
+                            )}>
+                                <MarkdownRenderer content={reasoning} isDark={isDark} />
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
+    );
 }
 
 export default function ChatPage() {
@@ -36,22 +194,61 @@ export default function ChatPage() {
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+    const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+    const [pendingImages, setPendingImages] = useState<string[]>([]);
     const scrollRef = useRef<HTMLDivElement>(null);
+    const messagesEndRef = useRef<HTMLDivElement>(null);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const reasoningStartRef = useRef<number | null>(null);
+    const { resolvedTheme } = useTheme();
+    const { setIsActiveChat } = useChatState();
+    const isDark = resolvedTheme === "dark";
+
+    const getGreeting = () => {
+        const hour = new Date().getHours();
+        if (hour < 5) return "How can I help you tonight?";
+        if (hour < 12) return "Good morning! How can I help?";
+        if (hour < 17) return "Good afternoon! How can I help?";
+        if (hour < 21) return "Good evening! How can I help?";
+        return "How can I help you tonight?";
+    };
 
     useEffect(() => {
         const savedChat = localStorage.getItem("current_chat_history");
         if (savedChat) {
-            setMessages(JSON.parse(savedChat));
+            try {
+                const parsed: Message[] = JSON.parse(savedChat);
+                // Re-parse any saved messages that might have <think> tags in content
+                const cleaned = parsed.map(m => {
+                    if (m.role === "assistant" && m.content && m.content.includes("<think>")) {
+                        const { reasoning, content } = parseThinkTags(m.content);
+                        return {
+                            ...m,
+                            content,
+                            reasoning: reasoning || m.reasoning || "",
+                        };
+                    }
+                    return m;
+                });
+                setMessages(cleaned);
+            } catch {
+                setMessages([]);
+            }
         }
 
         const fetchModels = async () => {
             const { data } = await supabase
                 .from("models")
-                .select("id, name, status, model_identifier")
-                .order("name");
+                .select("id, name, status, model_identifier");
             if (data) {
-                setModels(data);
-                if (data.length > 0) setSelectedModel(data[0]);
+                const sorted = [...data].sort((a: Model, b: Model) => (a.name || "").localeCompare(b.name || ""));
+                setModels(sorted);
+                if (sorted.length > 0) {
+                    const savedModelId = localStorage.getItem("selected_model_id");
+                    const savedModel = savedModelId ? sorted.find((m: Model) => m.id === savedModelId) : null;
+                    setSelectedModel(savedModel || sorted[0]);
+                }
             }
         };
 
@@ -67,16 +264,24 @@ export default function ChatPage() {
         return () => { supabase.removeChannel(channel); };
     }, []);
 
+    // Sync active chat state with bottom nav visibility
+    useEffect(() => {
+        return () => { setIsActiveChat(false); };
+    }, [setIsActiveChat]);
+
     useEffect(() => {
         if (messages.length > 0) {
             localStorage.setItem("current_chat_history", JSON.stringify(messages));
         } else {
             localStorage.removeItem("current_chat_history");
         }
-    }, [messages]);
+        setIsActiveChat(messages.length > 0);
+    }, [messages, setIsActiveChat]);
 
     useEffect(() => {
-        if (scrollRef.current) {
+        if (messagesEndRef.current) {
+            messagesEndRef.current.scrollIntoView({ behavior: "auto" });
+        } else if (scrollRef.current) {
             scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
         }
     }, [messages, isLoading]);
@@ -85,173 +290,615 @@ export default function ChatPage() {
         setMessages([]);
     };
 
-    const handleSendMessage = async (e: React.FormEvent) => {
+    const handleCopy = async (content: string, index: number) => {
+        await navigator.clipboard.writeText(content);
+        setCopiedIndex(index);
+        setTimeout(() => setCopiedIndex(null), 2000);
+    };
+
+    const fileToBase64 = (file: File): Promise<string> => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    };
+
+    const handleImageFiles = async (files: FileList | File[]) => {
+        const imageFiles = Array.from(files).filter(f => f.type.startsWith("image/"));
+        if (imageFiles.length === 0) return;
+        const base64Images = await Promise.all(imageFiles.map(f => fileToBase64(f)));
+        setPendingImages(prev => [...prev, ...base64Images]);
+    };
+
+    const handlePaste = async (e: React.ClipboardEvent) => {
+        const items = e.clipboardData?.items;
+        if (!items) return;
+        const imageFiles: File[] = [];
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.startsWith("image/")) {
+                const file = items[i].getAsFile();
+                if (file) imageFiles.push(file);
+            }
+        }
+        if (imageFiles.length > 0) {
+            e.preventDefault();
+            await handleImageFiles(imageFiles);
+        }
+    };
+
+    const handleDrop = async (e: React.DragEvent) => {
         e.preventDefault();
-        if (!input.trim() || !selectedModel || isLoading) return;
+        e.stopPropagation();
+        const files = e.dataTransfer?.files;
+        if (files) await handleImageFiles(files);
+    };
 
-        const newMessage: Message = { role: "user", content: input };
-        const updatedMessages = [...messages, newMessage];
-        setMessages(updatedMessages);
-        setInput("");
-        setIsLoading(true);
+    const removeImage = (index: number) => {
+        setPendingImages(prev => prev.filter((_, i) => i !== index));
+    };
 
-        try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/chat`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`
-                },
-                body: JSON.stringify({
-                    model_id: selectedModel.id,
-                    messages: updatedMessages.map(m => ({ role: m.role, content: m.content })),
+    const streamResponse = async (modelId: string, chatMessages: Message[], modelName?: string) => {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/chat`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`
+            },
+            body: JSON.stringify({
+                model_id: modelId,
+                messages: chatMessages.map(m => {
+                    // If message has images, send as multimodal content array (OpenAI vision format)
+                    if (m.images && m.images.length > 0) {
+                        const contentParts: any[] = [];
+                        for (const img of m.images) {
+                            contentParts.push({ type: "image_url", image_url: { url: img } });
+                        }
+                        if (m.content) {
+                            contentParts.push({ type: "text", text: m.content });
+                        }
+                        return { role: m.role, content: contentParts };
+                    }
+                    return { role: m.role, content: m.content };
                 }),
-            });
+            }),
+        });
 
-            if (!response.ok) throw new Error("Stream failed");
+        if (!response.ok) throw new Error("Stream failed");
 
-            const reader = response.body?.getReader();
-            if (!reader) throw new Error("No reader");
+        const reader = response.body?.getReader();
+        if (!reader) throw new Error("No reader");
 
-            const decoder = new TextDecoder();
-            let assistantMessage: Message = { role: "assistant", content: "", reasoning: "" };
-            setMessages(prev => [...prev, assistantMessage]);
+        const decoder = new TextDecoder();
+        const assistantMessage: Message = { role: "assistant", content: "", reasoning: "", model: modelName || "" };
+        // Track raw accumulated text to parse <think> tags from content stream
+        let rawAccumulated = "";
+        let hasReasoningContentField = false;
+        reasoningStartRef.current = null;
+        setMessages(prev => [...prev, assistantMessage]);
 
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
 
-                const chunk = decoder.decode(value);
-                const lines = chunk.split("\n");
+            const chunk = decoder.decode(value, { stream: true });
+            const lines = chunk.split("\n");
 
-                for (const line of lines) {
-                    if (line.startsWith("data: ")) {
-                        const dataStr = line.substring(6).trim();
-                        if (dataStr === "[DONE]") break;
-                        try {
-                            const data = JSON.parse(dataStr);
-                            const delta = data.choices[0].delta;
-                            if (delta.content) assistantMessage.content += delta.content;
-                            if (delta.reasoning_content) assistantMessage.reasoning = (assistantMessage.reasoning || "") + delta.reasoning_content;
+            for (const line of lines) {
+                if (line.startsWith("data: ")) {
+                    const dataStr = line.substring(6).trim();
+                    if (dataStr === "[DONE]") break;
+                    try {
+                        const data = JSON.parse(dataStr);
+                        const delta = data.choices[0].delta;
 
-                            setMessages(prev => {
-                                const newMessages = [...prev];
-                                newMessages[newMessages.length - 1] = { ...assistantMessage };
-                                return newMessages;
-                            });
-                        } catch (e) { }
+                        // Handle models that use reasoning_content field (OpenAI-style)
+                        if (delta.reasoning_content) {
+                            hasReasoningContentField = true;
+                            if (!reasoningStartRef.current) {
+                                reasoningStartRef.current = Date.now();
+                            }
+                            assistantMessage.reasoning = (assistantMessage.reasoning || "") + delta.reasoning_content;
+                        }
+
+                        if (delta.content) {
+                            if (hasReasoningContentField) {
+                                // Model uses separate reasoning field — content is clean
+                                if (reasoningStartRef.current && !assistantMessage.reasoningDuration) {
+                                    assistantMessage.reasoningDuration = Math.floor((Date.now() - reasoningStartRef.current) / 1000);
+                                }
+                                assistantMessage.content += delta.content;
+                            } else {
+                                // Model might embed <think> tags in content
+                                rawAccumulated += delta.content;
+
+                                // Track reasoning timing
+                                if (rawAccumulated.includes("<think>") && !reasoningStartRef.current) {
+                                    reasoningStartRef.current = Date.now();
+                                }
+
+                                // Parse think tags from accumulated content
+                                const parsed = parseThinkTags(rawAccumulated);
+                                assistantMessage.reasoning = parsed.reasoning;
+                                assistantMessage.content = parsed.content;
+
+                                // If we found closing </think> tag, compute duration
+                                if (rawAccumulated.includes("</think>") && reasoningStartRef.current && !assistantMessage.reasoningDuration) {
+                                    assistantMessage.reasoningDuration = Math.floor((Date.now() - reasoningStartRef.current) / 1000);
+                                }
+                            }
+                        }
+
+                        setMessages(prev => {
+                            const newMessages = [...prev];
+                            newMessages[newMessages.length - 1] = { ...assistantMessage };
+                            return newMessages;
+                        });
+                    } catch (e) {
+                        // Ignore partial JSON chunks during streaming
                     }
                 }
             }
+        }
+
+        // Finalize reasoning duration if content never came
+        if (reasoningStartRef.current && !assistantMessage.reasoningDuration) {
+            assistantMessage.reasoningDuration = Math.floor((Date.now() - reasoningStartRef.current) / 1000);
+            setMessages(prev => {
+                const newMessages = [...prev];
+                newMessages[newMessages.length - 1] = { ...assistantMessage };
+                return newMessages;
+            });
+        }
+    };
+
+    const handleRegenerate = async (index: number) => {
+        if (isLoading) return;
+
+        const userMsgIndex = index - 1;
+        if (userMsgIndex < 0 || messages[userMsgIndex].role !== "user") return;
+
+        const updatedMessages = messages.slice(0, userMsgIndex + 1);
+        setMessages(updatedMessages);
+        setIsLoading(true);
+
+        const availableModels = models.filter(m => m.status === 'available');
+        const differentModels = availableModels.filter(m => m.id !== selectedModel?.id);
+        let nextModel = selectedModel;
+        if (differentModels.length > 0) {
+            nextModel = differentModels[Math.floor(Math.random() * differentModels.length)];
+            setSelectedModel(nextModel);
+            if (nextModel) localStorage.setItem("selected_model_id", nextModel.id);
+        }
+
+        try {
+            await streamResponse(nextModel?.id || "", updatedMessages, nextModel?.name);
         } catch (error: any) {
-            setMessages(prev => [...prev, { role: "assistant", content: `Error: ${error.message}` }]);
+            setMessages(prev => [...prev, { role: "assistant", content: `Error: ${error.message}`, model: nextModel?.name }]);
         } finally {
             setIsLoading(false);
         }
     };
 
+    const handleSendMessage = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const hasContent = input.trim() || pendingImages.length > 0;
+        if (!hasContent || !selectedModel || isLoading) return;
+
+        const newMessage: Message = {
+            role: "user",
+            content: input,
+            ...(pendingImages.length > 0 ? { images: [...pendingImages] } : {}),
+        };
+        const updatedMessages = [...messages, newMessage];
+        setMessages(updatedMessages);
+        setInput("");
+        setPendingImages([]);
+        if (textareaRef.current) {
+            textareaRef.current.style.height = 'auto';
+        }
+        setIsLoading(true);
+
+        try {
+            await streamResponse(selectedModel.id, updatedMessages, selectedModel.name);
+        } catch (error: any) {
+            setMessages(prev => [...prev, { role: "assistant", content: `Error: ${error.message}`, model: selectedModel?.name }]);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const isLastAssistantStreaming = (index: number) => {
+        return isLoading && index === messages.length - 1;
+    };
+
+    const isReasoningStreaming = (m: Message, index: number) => {
+        return isLastAssistantStreaming(index) && !!m.reasoning && !m.content;
+    };
+
     return (
-        <div className="flex flex-col h-screen bg-[#171717] text-[#ececec]">
-            {/* Header with Model Selector */}
-            <header className="p-4 flex items-center justify-between sticky top-0 z-20">
-                <div className="flex items-center gap-1 group cursor-pointer hover:bg-white/5 transition-colors px-3 py-1.5 rounded-xl">
-                    <span className="font-semibold text-lg">{selectedModel?.name || "ChatGPT"}</span>
-                    <ChevronDown size={14} className="text-muted-foreground mt-0.5" />
+        <div className="flex flex-col h-[100svh] font-sans bg-[var(--chat-surface)] text-[var(--chat-text)]">
+            {/* Header */}
+            <header className={cn(
+                "sticky top-0 z-20 px-4 py-3 flex items-center justify-between relative",
+                isDark ? "bg-background/80" : "bg-[var(--chat-surface)]"
+            )}>
+                {/* Spacer for mobile (balances the right-side buttons) */}
+                <div className="w-11 md:hidden" />
+
+                {/* Mobile Model Selector */}
+                <div className="md:hidden absolute left-1/2 -translate-x-1/2 flex items-center justify-center">
+                    <Sheet>
+                        <SheetTrigger className={cn(
+                            "flex items-center gap-1.5 text-[20px] font-semibold focus:outline-none",
+                            isDark ? "text-foreground" : "text-[var(--chat-text)]"
+                        )}>
+                            {selectedModel?.name || "Select model"}
+                            <span className="material-symbols-rounded text-[24px]">expand_more</span>
+                        </SheetTrigger>
+                        <SheetContent side="bottom" className={cn(
+                            "rounded-t-3xl pb-10 border-t-0 px-4 max-h-[80vh] overflow-y-auto",
+                            isDark ? "bg-[#242424]" : "bg-[var(--chat-surface)]"
+                        )}>
+                            <SheetHeader className="pb-4 pt-2">
+                                <SheetTitle className={cn(
+                                    "text-center text-[22px] font-semibold",
+                                    isDark ? "text-foreground" : "text-[var(--chat-text)]"
+                                )}>Select a model</SheetTitle>
+                            </SheetHeader>
+                            <div className="flex flex-col gap-2">
+                                {[...models].sort((a, b) => (a.status === 'available' ? -1 : 1) - (b.status === 'available' ? -1 : 1)).map(m => (
+                                    <SheetClose asChild key={m.id}>
+                                        <button
+                                            onClick={() => {
+                                                setSelectedModel(m);
+                                                localStorage.setItem("selected_model_id", m.id);
+                                            }}
+                                            className={cn(
+                                                "flex items-center justify-between w-full px-4 py-3 rounded-2xl transition-colors cursor-pointer text-left focus:outline-none",
+                                                selectedModel?.id === m.id 
+                                                    ? (isDark ? "bg-[#333]" : "bg-black/5")
+                                                    : "bg-transparent hover:bg-black/5 dark:hover:bg-white/5",
+                                                isDark ? "text-foreground" : "text-[var(--chat-text)]"
+                                            )}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className={cn(
+                                                    "w-2.5 h-2.5 rounded-full",
+                                                    m.status === 'available' ? "bg-green-500" :
+                                                    m.status === 'unavailable' ? "bg-red-500" :
+                                                    "bg-yellow-500"
+                                                )} />
+                                                <span className={cn(
+                                                    "text-[17px] font-medium",
+                                                    m.status !== 'available' && "opacity-60"
+                                                )}>{m.name}</span>
+                                            </div>
+                                            {selectedModel?.id === m.id && (
+                                                <span className="material-symbols-rounded text-[20px]">check</span>
+                                            )}
+                                        </button>
+                                    </SheetClose>
+                                ))}
+                            </div>
+                        </SheetContent>
+                    </Sheet>
                 </div>
 
-                <div className="flex items-center gap-3">
-                    {messages.length > 0 && (
-                        <Button variant="ghost" size="icon" onClick={handleClearChat} className="text-muted-foreground hover:bg-white/5">
-                            <Trash2 size={18} />
-                        </Button>
-                    )}
+                {/* Desktop Model Selector */}
+                <div className="hidden md:flex items-center gap-2 mx-auto md:mx-0">
                     <Select
                         value={selectedModel?.id}
-                        onValueChange={(id) => setSelectedModel(models.find(m => m.id === id) || null)}
+                        onValueChange={(id) => {
+                            const model = models.find(m => m.id === id) || null;
+                            setSelectedModel(model);
+                            if (model) localStorage.setItem("selected_model_id", model.id);
+                        }}
                     >
-                        <SelectTrigger className="bg-transparent border-none focus:ring-0 text-xs w-[200px] h-8 text-muted-foreground hover:text-foreground">
-                            <SelectValue placeholder="Switch model" />
+                        <SelectTrigger className={cn(
+                            "w-auto max-w-[320px] h-10 border-transparent bg-transparent shadow-none hover:border-transparent focus:ring-0 text-[15px] font-semibold",
+                            isDark ? "text-foreground" : "text-[var(--chat-text)]"
+                        )}>
+                            <SelectValue placeholder="Select model" />
                         </SelectTrigger>
-                        <SelectContent className="bg-[#212121] border-[#333] text-[#ececec]">
+                        <SelectContent className={cn(
+                            isDark ? "bg-[#242424] border-[#333]" : "bg-popover border-border"
+                        )}>
                             {models.map(m => (
-                                <SelectItem key={m.id} value={m.id} className="focus:bg-white/5">{m.name}</SelectItem>
+                                <SelectItem key={m.id} value={m.id} className={cn(
+                                    "cursor-pointer",
+                                    isDark ? "focus:bg-[#2A2A2A]" : "focus:bg-muted"
+                                )}>
+                                    <div className="flex items-center gap-2">
+                                        <span className={cn(
+                                            "w-2 h-2 rounded-full shrink-0",
+                                            m.status === 'available' ? "bg-green-500" :
+                                            m.status === 'unavailable' ? "bg-red-500" :
+                                            "bg-yellow-500"
+                                        )} />
+                                        <span>{m.name}</span>
+                                    </div>
+                                </SelectItem>
                             ))}
                         </SelectContent>
                     </Select>
                 </div>
+
+                <div className="flex items-center gap-1 md:relative absolute right-4">
+                    {messages.length > 0 && (
+                        <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={handleClearChat}
+                            className={cn(
+                                "h-11 w-11 rounded-full",
+                                isDark ? "bg-[#2A2A2A] text-foreground" : "bg-white/80 text-[var(--chat-text)]"
+                            )}
+                        >
+                            <span className="material-symbols-rounded text-[20px]">delete_outline</span>
+                        </Button>
+                    )}
+                </div>
             </header>
 
             {/* Main Chat Area */}
-            <main className="flex-1 flex flex-col relative overflow-hidden">
-                <ScrollArea className="flex-1" ref={scrollRef}>
+            <main className="flex-1 flex flex-col overflow-hidden relative">
+                <div className="flex-1 overflow-y-auto" ref={scrollRef}>
                     {messages.length === 0 ? (
-                        <div className="h-full flex flex-col items-center justify-center p-4">
-                            <h2 className="text-4xl font-semibold mb-12 animate-in fade-in slide-in-from-bottom-4 duration-700">What's on the agenda today?</h2>
+                        <div className="h-full flex flex-col items-center justify-center px-6 pb-40 text-center">
+                            <div className="relative flex flex-col items-center gap-5">
+                                <span className={isDark ? "text-foreground" : "text-[var(--chat-text)]"}>
+                                    <KrutimLogo size={48} />
+                                </span>
+                                <h2 className="text-3xl md:text-4xl font-bold text-[var(--chat-text)]">
+                                    {getGreeting()}
+                                </h2>
+                            </div>
                         </div>
                     ) : (
-                        <div className="max-w-3xl mx-auto w-full px-4 py-8 space-y-12 pb-32">
+                        <div className="max-w-3xl mx-auto w-full px-3 py-6 space-y-5 pb-52">
                             {messages.map((m, i) => (
-                                <div key={i} className="flex gap-5 animate-in fade-in duration-500">
-                                    <div className={cn("h-8 w-8 rounded-full flex items-center justify-center mt-1 border border-white/10 shadow-sm", m.role === 'user' ? "bg-white/90 text-black" : "bg-[#212121] text-white")}>
-                                        {m.role === 'user' ? <User size={16} /> : <Bot size={16} />}
-                                    </div>
-                                    <div className="flex-1 space-y-3">
-                                        {m.reasoning && (
-                                            <div className="bg-white/[0.03] rounded-2xl p-4 border border-white/10 text-sm text-[#b4b4b4] italic">
-                                                <span className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest mb-2 opacity-50 not-italic"><BrainCircuit size={12} /> Thinking...</span>
-                                                <div className="whitespace-pre-wrap">{m.reasoning}</div>
+                                <div key={i} className="animate-fade-in">
+                                    {m.role === 'user' ? (
+                                        /* User message */
+                                        <div className="flex justify-end">
+                                            <div className={cn(
+                                                "inline-block p-3 md:p-4 rounded-2xl w-full space-y-2",
+                                                isDark ? "bg-[#2a2a2a] text-[#EAEAEA]" : "bg-[#F5F5F5] text-[#171717]"
+                                            )}>
+                                                {/* Images */}
+                                                {m.images && m.images.length > 0 && (
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {m.images.map((img, imgIdx) => (
+                                                            <img
+                                                                key={imgIdx}
+                                                                src={img}
+                                                                alt={`Attached ${imgIdx + 1}`}
+                                                                className="max-w-[200px] max-h-[200px] rounded-xl object-cover"
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                )}
+                                                {m.content && (
+                                                    <div className="text-[15px] leading-relaxed break-words">
+                                                        <MarkdownRenderer content={m.content} isDark={isDark} />
+                                                    </div>
+                                                )}
                                             </div>
-                                        )}
-                                        <div className="text-[15.5px] leading-[1.7] whitespace-pre-wrap selection:bg-primary/30">
-                                            {m.content || (isLoading && i === messages.length - 1 ? <span className="inline-block w-1.5 h-4 bg-white/40 animate-pulse translate-y-0.5 ml-1" /> : null)}
                                         </div>
-                                    </div>
+                                    ) : (
+                                        /* Assistant message */
+                                        <div className="flex gap-3 items-start w-full">
+                                            <div className={cn(
+                                                "w-8 h-8 rounded-full items-center justify-center mt-1 shrink-0",
+                                                "hidden",
+                                                isDark ? "bg-[#242424] border border-[#333]" : "bg-white border border-black/5"
+                                            )}>
+                                                <span className={cn(
+                                                    "material-symbols-rounded text-[16px]",
+                                                    isDark ? "text-foreground" : "text-[var(--chat-text)]"
+                                                )}>smart_toy</span>
+                                            </div>
+
+                                            <div className="flex-1 min-w-0 space-y-1">
+                                                {/* Thinking block */}
+                                                {m.reasoning && (
+                                                    <ThinkingBlock
+                                                        reasoning={m.reasoning}
+                                                        isStreaming={isReasoningStreaming(m, i)}
+                                                        duration={m.reasoningDuration}
+                                                        isDark={isDark}
+                                                    />
+                                                )}
+
+                                                {/* Message content */}
+                                                <div className="w-full">
+                                                    {m.content ? (
+                                                        <div className={cn(
+                                                            "text-[15px] leading-relaxed",
+                                                            isDark ? "text-foreground" : "text-[var(--chat-text)]"
+                                                        )}>
+                                                            <MarkdownRenderer content={m.content} isDark={isDark} />
+                                                        </div>
+                                                    ) : (isLoading && i === messages.length - 1 && !m.reasoning ? (
+                                                        <span className="inline-flex gap-1 py-2">
+                                                            <span className="w-1.5 h-1.5 rounded-full animate-bounce bg-muted-foreground/50" style={{ animationDelay: '0ms' }} />
+                                                            <span className="w-1.5 h-1.5 rounded-full animate-bounce bg-muted-foreground/50" style={{ animationDelay: '150ms' }} />
+                                                            <span className="w-1.5 h-1.5 rounded-full animate-bounce bg-muted-foreground/50" style={{ animationDelay: '300ms' }} />
+                                                        </span>
+                                                    ) : null)}
+                                                </div>
+
+                                                {/* Action buttons */}
+                                                {m.model && !isLastAssistantStreaming(i) && (
+                                                    <p className={cn(
+                                                        "text-[11px] mt-2 flex items-center gap-1",
+                                                        isDark ? "text-foreground/30" : "text-muted-foreground/60"
+                                                    )}>
+                                                        <span className="material-symbols-rounded text-[14px]">smart_toy</span>
+                                                        Prepared using {m.model}
+                                                    </p>
+                                                )}
+                                                <div className="flex items-center gap-1 mt-1">
+                                                    <button
+                                                        onClick={() => handleRegenerate(i)}
+                                                        disabled={isLoading}
+                                                        className={cn(
+                                                            "p-1.5 rounded-md transition-colors flex items-center justify-center",
+                                                            isLoading ? "opacity-50 cursor-not-allowed" : (isDark ? "hover:bg-[#2A2A2A] text-foreground/40 hover:text-foreground" : "hover:bg-black/5 text-muted-foreground hover:text-[var(--chat-text)]")
+                                                        )}
+                                                        title="Regenerate with a different model"
+                                                    >
+                                                        <span className="material-symbols-rounded text-[18px]">sync</span>
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleCopy(m.content, i)}
+                                                        className={cn(
+                                                            "p-1.5 rounded-md transition-colors flex items-center justify-center",
+                                                            isDark ? "hover:bg-[#2A2A2A] text-foreground/40 hover:text-foreground" : "hover:bg-black/5 text-muted-foreground hover:text-[var(--chat-text)]"
+                                                        )}
+                                                        title="Copy message"
+                                                    >
+                                                        <span className="material-symbols-rounded text-[18px]">
+                                                            {copiedIndex === i ? "check" : "content_copy"}
+                                                        </span>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             ))}
+                            <div ref={messagesEndRef} className="h-4" />
                         </div>
                     )}
-                </ScrollArea>
+                </div>
 
-                {/* Floating Input Bar (ChatGPT Style) */}
-                <div className="absolute bottom-8 left-0 right-0 px-4 flex justify-center pointer-events-none">
-                    <form
-                        onSubmit={handleSendMessage}
-                        className="w-full max-w-[760px] pointer-events-auto bg-[#2f2f2f] rounded-[28px] border border-white/5 shadow-2xl flex items-center transition-all focus-within:ring-1 focus-within:ring-white/20 px-6"
-                    >
-                        <Input
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            placeholder="Ask anything"
-                            className="bg-transparent border-none focus-visible:ring-0 text-[16px] placeholder:text-muted-foreground/60 h-10 px-0 flex-1"
-                        />
-
-                        <div className="flex items-center gap-1.5 shrink-0">
-                            {input.trim() && (
-                                <Button type="submit" size="icon" className="h-10 w-10 rounded-full bg-white text-black hover:bg-[#ececec] animate-in fade-in zoom-in duration-200">
-                                    <Send size={18} />
-                                </Button>
+                {/* Input Area */}
+                <div className={cn(
+                    "absolute bottom-0 left-0 right-0 p-4 md:p-4 pb-8 md:pb-4",
+                    "bg-gradient-to-t from-[var(--chat-surface)] via-[var(--chat-surface)] to-transparent"
+                )}>
+                    <div className="max-w-3xl mx-auto w-full">
+                        <form
+                            onSubmit={handleSendMessage}
+                            onDrop={handleDrop}
+                            onDragOver={(e) => e.preventDefault()}
+                            className={cn(
+                                "flex flex-col rounded-[24px] border transition-all p-3 overflow-hidden",
+                                isDark
+                                    ? "bg-[#2a2a2a] border-[#333] focus-within:border-[#555]"
+                                    : "bg-[#F5F5F5] border-[#E5E5E5] focus-within:border-[#CCCCCC]"
                             )}
-                        </div>
-                    </form>
+                        >
+                            {/* Image previews */}
+                            {pendingImages.length > 0 && (
+                                <div className="flex flex-wrap gap-2 px-1 pb-2">
+                                    {pendingImages.map((img, idx) => (
+                                        <div key={idx} className="relative group">
+                                            <img
+                                                src={img}
+                                                alt={`Preview ${idx + 1}`}
+                                                className="w-16 h-16 rounded-xl object-cover"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => removeImage(idx)}
+                                                className={cn(
+                                                    "absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity",
+                                                    isDark ? "bg-[#555] text-white" : "bg-[#333] text-white"
+                                                )}
+                                            >
+                                                <span className="material-symbols-rounded text-[12px]">close</span>
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            <textarea
+                                ref={textareaRef}
+                                value={input}
+                                onChange={(e) => {
+                                    setInput(e.target.value);
+                                    e.target.style.height = 'auto';
+                                    e.target.style.height = `${Math.min(e.target.scrollHeight, 200)}px`;
+                                }}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                        e.preventDefault();
+                                        const hasContent = input.trim() || pendingImages.length > 0;
+                                        if (hasContent && !isLoading) {
+                                            handleSendMessage(e as any);
+                                        }
+                                    }
+                                }}
+                                onPaste={handlePaste}
+                                placeholder="Ask anything..."
+                                data-gramm="false"
+                                data-gramm_editor="false"
+                                data-enable-grammarly="false"
+                                className={cn(
+                                    "w-full bg-transparent border-none focus-visible:ring-0 text-[16px] placeholder:text-[16px] px-2 py-1 resize-none outline-none min-h-[48px] max-h-[200px] overflow-y-auto",
+                                    isDark ? "placeholder:text-muted-foreground text-foreground" : "placeholder:text-muted-foreground text-[var(--chat-text)]"
+                                )}
+                                disabled={isLoading}
+                                rows={1}
+                            />
+
+                            {/* Hidden file input */}
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/*"
+                                multiple
+                                className="hidden"
+                                onChange={(e) => {
+                                    if (e.target.files) handleImageFiles(e.target.files);
+                                    e.target.value = "";
+                                }}
+                            />
+                            
+                            <div className="flex items-center justify-between mt-1">
+                                {/* Attach image button */}
+                                <button
+                                    type="button"
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className={cn(
+                                        "p-1.5 rounded-full transition-colors",
+                                        isDark ? "text-[#EAEAEA]/40 hover:text-[#EAEAEA]/70" : "text-[#737373] hover:text-[#171717]"
+                                    )}
+                                    title="Attach image"
+                                >
+                                    <span className="material-symbols-rounded text-[20px]">add_photo_alternate</span>
+                                </button>
+
+                                <Button
+                                    type="submit"
+                                    size="icon"
+                                    disabled={(!input.trim() && pendingImages.length === 0) || isLoading}
+                                    className={cn(
+                                        "h-10 w-10 shrink-0 rounded-full transition-all",
+                                        (input.trim() || pendingImages.length > 0)
+                                            ? (isDark ? "bg-white hover:bg-white/90 text-black" : "bg-[#171717] hover:bg-[#333] text-white")
+                                            : (isDark ? "bg-[#333] text-muted-foreground" : "bg-[#E5E5E5] text-muted-foreground"),
+                                        isLoading && "opacity-50 cursor-not-allowed"
+                                    )}
+                                >
+                                    <span className="material-symbols-rounded text-[20px]">
+                                        arrow_upward
+                                    </span>
+                                </Button>
+                            </div>
+                        </form>
+
+                        <p className="text-[10px] text-center mt-2 text-muted-foreground">
+                            AI can make mistakes. Please check important information.
+                        </p>
+                    </div>
                 </div>
             </main>
-
-            {/* Footer Info */}
-            <footer className="p-3 text-center">
-                <p className="text-[11px] text-muted-foreground font-medium opacity-50">
-                    Model Chat can make mistakes. Check important info.
-                </p>
-            </footer>
-
-            {/* Persistent New Chat Button (CTA) */}
-            {!isLoading && messages.length > 0 && (
-                <div className="fixed bottom-24 right-8 animate-in zoom-in duration-500">
-                    <Button variant="outline" className="bg-[#2f2f2f] border-white/10 text-white rounded-full px-6 py-6 h-auto shadow-2xl hover:bg-[#383838] group" onClick={handleClearChat}>
-                        <Plus size={18} className="mr-2 group-hover:rotate-90 transition-transform" />
-                        New Chat
-                    </Button>
-                </div>
-            )}
         </div>
     );
 }

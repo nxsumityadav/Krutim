@@ -2,32 +2,62 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CheckCircle2, XCircle, Clock, Activity, AlertTriangle } from "lucide-react";
+import { useTheme } from "@/components/theme-provider";
 import { cn } from "@/lib/utils";
 
 interface Model {
     id: string;
     name: string;
+    base_url: string;
+    api_key?: string;
     status: "available" | "unavailable" | "unknown";
     last_checked: string;
     response_time_ms: number;
     error_message?: string;
     model_identifier: string;
+    created_at?: string;
+}
+
+function timeAgo(dateStr: string): string {
+    if (!dateStr) return "—";
+    const now = Date.now();
+    const then = new Date(dateStr).getTime();
+    const diffSec = Math.floor((now - then) / 1000);
+    if (diffSec < 60) return `${diffSec}s ago`;
+    const diffMin = Math.floor(diffSec / 60);
+    if (diffMin < 60) return `${diffMin}m ago`;
+    const diffHr = Math.floor(diffMin / 60);
+    if (diffHr < 24) return `${diffHr}h ago`;
+    const diffDay = Math.floor(diffHr / 24);
+    return `${diffDay}d ago`;
 }
 
 export default function ModelsStatusPage() {
     const [models, setModels] = useState<Model[]>([]);
+    const [expandedId, setExpandedId] = useState<string | null>(null);
+    const { resolvedTheme } = useTheme();
+    const isDark = resolvedTheme === "dark";
+
+    const available = models.filter(m => m.status === "available").length;
+    const unavailable = models.filter(m => m.status === "unavailable").length;
+    const unknown = models.filter(m => m.status !== "available" && m.status !== "unavailable").length;
+    const total = models.length;
+    const pct = total > 0 ? (available / total) * 100 : 0;
 
     useEffect(() => {
         const fetchModels = async () => {
-            const { data, error } = await supabase
+            const { data } = await supabase
                 .from("models")
-                .select("*")
-                .order("name");
-            if (data) setModels(data);
+                .select("*");
+            if (data) {
+                const sorted = [...data].sort((a, b) => {
+                    if (a.status === "available" && b.status !== "available") return -1;
+                    if (a.status !== "available" && b.status === "available") return 1;
+                    return (a.name || a.model_identifier || "").localeCompare(b.name || b.model_identifier || "");
+                });
+                setModels(sorted);
+            }
         };
 
         fetchModels();
@@ -53,93 +83,188 @@ export default function ModelsStatusPage() {
     }, []);
 
     return (
-        <div className="p-8 max-w-7xl mx-auto">
-            <div className="flex flex-col mb-8">
-                <h1 className="text-3xl font-bold tracking-tight">Models Status</h1>
-                <p className="text-muted-foreground">Monitor the availability and performance of all registered AI models.</p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <Card className="bg-card/50 backdrop-blur-sm">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium uppercase tracking-wider opacity-60">Total Models</CardTitle>
-                        <Activity className="h-4 w-4 text-primary" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{models.length}</div>
-                    </CardContent>
-                </Card>
-                <Card className="bg-card/50 backdrop-blur-sm">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium uppercase tracking-wider opacity-60">Available</CardTitle>
-                        <CheckCircle2 className="h-4 w-4 text-green-500" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-green-500">
-                            {models.filter(m => m.status === 'available').length}
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card className="bg-card/50 backdrop-blur-sm">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium uppercase tracking-wider opacity-60">Unavailable</CardTitle>
-                        <XCircle className="h-4 w-4 text-destructive" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-destructive">
-                            {models.filter(m => m.status === 'unavailable').length}
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
-
-            <Card className="border-muted bg-card/30">
-                <div className="overflow-x-auto">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Model Name</TableHead>
-                                <TableHead>Identifier</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead>Latency</TableHead>
-                                <TableHead>Last Checked</TableHead>
-                                <TableHead>Error Message</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {models.map((model) => (
-                                <TableRow key={model.id} className="hover:bg-muted/30">
-                                    <TableCell className="font-semibold">{model.name}</TableCell>
-                                    <TableCell className="font-mono text-xs opacity-60">{model.model_identifier}</TableCell>
-                                    <TableCell>
-                                        <Badge variant={model.status === 'available' ? 'default' : 'destructive'}
-                                            className={cn(
-                                                "capitalize",
-                                                model.status === 'available' ? 'bg-green-500/20 text-green-500 hover:bg-green-500/30' :
-                                                    model.status === 'unavailable' ? 'bg-red-500/20 text-red-500 hover:bg-red-500/30' :
-                                                        'bg-yellow-500/20 text-yellow-500 hove:bg-yellow-500/30'
-                                            )}>
-                                            {model.status}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="flex items-center gap-2">
-                                            <Clock size={14} className="opacity-40" />
-                                            {model.response_time_ms}ms
-                                        </div>
-                                    </TableCell>
-                                    <TableCell className="text-sm opacity-60">
-                                        {model.last_checked ? new Date(model.last_checked).toLocaleString() : 'Never'}
-                                    </TableCell>
-                                    <TableCell className="max-w-[200px] truncate text-xs text-destructive">
-                                        {model.error_message || '-'}
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
+        <div className={cn(
+            "min-h-[100svh] p-4 md:p-8 pb-24 md:pb-8",
+            isDark ? "bg-[#1A1A1A] text-[#EAEAEA]" : "bg-white text-[#171717]"
+        )}>
+            <div className="max-w-2xl mx-auto space-y-6">
+                {/* Header */}
+                <div className="flex items-center gap-3">
+                    <h1 className="text-2xl font-bold tracking-tight">Models Status</h1>
                 </div>
-            </Card>
+
+                {/* Availability Card */}
+                <div className={cn(
+                    "rounded-2xl p-5 space-y-4",
+                    isDark ? "bg-[#242424] border border-[#333]" : "bg-[#FAFAFA] border border-[#E5E5E5]"
+                )}>
+                    <h2 className={cn(
+                        "text-[15px] font-medium",
+                        isDark ? "text-[#EAEAEA]/60" : "text-[#737373]"
+                    )}>Availability</h2>
+
+                    <div className="flex items-center justify-between">
+                        <span className={cn(
+                            "text-[15px]",
+                            isDark ? "text-[#EAEAEA]/60" : "text-[#737373]"
+                        )}>Active Models</span>
+                        <span className="text-xl font-bold">{available}/{total}</span>
+                    </div>
+
+                    {/* Progress bar */}
+                    <div className={cn(
+                        "w-full h-2 rounded-full overflow-hidden",
+                        isDark ? "bg-[#333]" : "bg-[#E5E5E5]"
+                    )}>
+                        <div
+                            className={cn(
+                                "h-full rounded-full transition-all duration-500 ease-out",
+                                isDark ? "bg-[#EAEAEA]" : "bg-[#171717]"
+                            )}
+                            style={{ width: `${pct}%` }}
+                        />
+                    </div>
+
+                    {/* Legend pills */}
+                    <div className="flex gap-2 flex-wrap">
+                        <Badge variant="outline" className={cn(
+                            "text-[11px] py-0.5 px-2.5 rounded-full font-medium",
+                            "bg-green-500/10 border-green-500/20",
+                            isDark ? "text-green-400" : "text-green-600"
+                        )}>
+                            Ready {available}
+                        </Badge>
+                        <Badge variant="outline" className={cn(
+                            "text-[11px] py-0.5 px-2.5 rounded-full font-medium",
+                            "bg-red-500/10 border-red-500/20",
+                            isDark ? "text-red-400" : "text-red-500"
+                        )}>
+                            Offline {unavailable}
+                        </Badge>
+                        {unknown > 0 && (
+                            <Badge variant="outline" className={cn(
+                                "text-[11px] py-0.5 px-2.5 rounded-full font-medium",
+                                "bg-yellow-500/10 border-yellow-500/20",
+                                isDark ? "text-yellow-400" : "text-yellow-600"
+                            )}>
+                                Unknown {unknown}
+                            </Badge>
+                        )}
+                    </div>
+                </div>
+
+                {/* Model list */}
+                <div className="space-y-2">
+                    {models.map((model) => {
+                        const isExpanded = expandedId === model.id;
+                        return (
+                            <div
+                                key={model.id}
+                                className={cn(
+                                    "rounded-2xl transition-colors overflow-hidden",
+                                    isDark ? "bg-[#242424] border border-[#333]" : "bg-[#FAFAFA] border border-[#E5E5E5]"
+                                )}
+                            >
+                                {/* Main row — clickable to expand */}
+                                <button
+                                    onClick={() => setExpandedId(isExpanded ? null : model.id)}
+                                    className="flex items-center justify-between px-4 py-3.5 w-full text-left cursor-pointer"
+                                >
+                                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                                        <div className={cn(
+                                            "w-2.5 h-2.5 rounded-full shrink-0",
+                                            model.status === "available" ? "bg-green-500" :
+                                            model.status === "unavailable" ? "bg-red-500" :
+                                            "bg-yellow-500"
+                                        )} />
+                                        <div className="min-w-0 flex-1">
+                                            <p className={cn(
+                                                "text-[15px] font-medium truncate",
+                                                model.status !== "available" && "opacity-60"
+                                            )}>{model.name || model.model_identifier || model.id}</p>
+                                            <p className={cn(
+                                                "text-[12px] font-mono truncate",
+                                                isDark ? "text-[#EAEAEA]/30" : "text-[#737373]/60"
+                                            )}>{model.model_identifier || "—"}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-3 shrink-0 ml-3">
+                                        {model.response_time_ms > 0 && (
+                                            <span className={cn(
+                                                "text-[12px]",
+                                                isDark ? "text-[#EAEAEA]/40" : "text-[#737373]"
+                                            )}>{model.response_time_ms}ms</span>
+                                        )}
+                                        <Badge
+                                            className={cn(
+                                                "capitalize text-[11px] px-2 py-0.5 rounded-full font-medium border-0",
+                                                model.status === "available"
+                                                    ? (isDark ? "bg-green-500/10 text-green-400" : "bg-green-500/10 text-green-600")
+                                                    : model.status === "unavailable"
+                                                    ? (isDark ? "bg-red-500/10 text-red-400" : "bg-red-500/10 text-red-500")
+                                                    : (isDark ? "bg-yellow-500/10 text-yellow-400" : "bg-yellow-500/10 text-yellow-600")
+                                            )}
+                                        >
+                                            {model.status === "available" ? "Ready" : model.status === "unavailable" ? "Offline" : "Unknown"}
+                                        </Badge>
+                                        <span className={cn(
+                                            "material-symbols-rounded text-[18px] transition-transform duration-200",
+                                            isExpanded && "rotate-180",
+                                            isDark ? "text-[#EAEAEA]/30" : "text-[#737373]/50"
+                                        )}>expand_more</span>
+                                    </div>
+                                </button>
+
+                                {/* Expanded details */}
+                                {isExpanded && (
+                                    <div className={cn(
+                                        "px-4 pb-4 pt-1 space-y-2.5",
+                                        isDark ? "border-t border-[#333]" : "border-t border-[#E5E5E5]"
+                                    )}>
+                                        {/* Detail rows */}
+                                        <DetailRow label="Model ID" value={model.model_identifier} isDark={isDark} mono />
+                                        <DetailRow label="Response Time" value={model.response_time_ms > 0 ? `${model.response_time_ms}ms` : "—"} isDark={isDark} />
+                                        <DetailRow label="Last Checked" value={model.last_checked ? timeAgo(model.last_checked) : "—"} isDark={isDark} />
+                                        <DetailRow label="Created" value={model.created_at ? new Date(model.created_at).toLocaleDateString() : "—"} isDark={isDark} />
+
+                                        {/* Error message */}
+                                        {model.error_message && (
+                                            <div className="pt-1">
+                                                <p className={cn(
+                                                    "text-[11px] font-medium mb-1.5",
+                                                    isDark ? "text-red-400" : "text-red-500"
+                                                )}>Error</p>
+                                                <div className={cn(
+                                                    "text-[12px] font-mono leading-relaxed p-3 rounded-xl break-all whitespace-pre-wrap",
+                                                    isDark ? "bg-[#1A1A1A] text-[#EAEAEA]/60" : "bg-white text-[#737373]"
+                                                )}>
+                                                    {model.error_message}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function DetailRow({ label, value, isDark, mono }: { label: string; value: string; isDark: boolean; mono?: boolean }) {
+    return (
+        <div className="flex items-start justify-between gap-4">
+            <span className={cn(
+                "text-[12px] shrink-0",
+                isDark ? "text-[#EAEAEA]/40" : "text-[#737373]"
+            )}>{label}</span>
+            <span className={cn(
+                "text-[12px] text-right break-all min-w-0",
+                mono && "font-mono",
+                isDark ? "text-[#EAEAEA]/70" : "text-[#171717]/70"
+            )}>{value || "—"}</span>
         </div>
     );
 }
