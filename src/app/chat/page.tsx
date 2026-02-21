@@ -520,7 +520,7 @@ export default function ChatPage() {
         <div className="flex flex-col h-[100svh] font-sans bg-[var(--chat-surface)] text-[var(--chat-text)]">
             {/* Header */}
             <header className={cn(
-                "sticky top-0 z-20 px-4 py-3 flex items-center justify-between relative",
+                "sticky top-0 z-20 px-4 h-[56px] md:h-auto md:py-3 flex items-center justify-between relative",
                 "bg-[var(--chat-surface)] dark:bg-background/80"
             )}>
                 {/* Sidebar Trigger for mobile */}
