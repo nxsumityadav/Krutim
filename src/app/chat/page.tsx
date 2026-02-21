@@ -216,31 +216,20 @@ export default function ChatPage() {
                 <div className="absolute bottom-8 left-0 right-0 px-4 flex justify-center pointer-events-none">
                     <form
                         onSubmit={handleSendMessage}
-                        className="w-full max-w-[760px] pointer-events-auto bg-[#2f2f2f] rounded-[28px] border border-white/5 shadow-2xl flex items-center p-2.5 transition-all focus-within:ring-1 focus-within:ring-white/20"
+                        className="w-full max-w-[760px] pointer-events-auto bg-[#2f2f2f] rounded-[28px] border border-white/5 shadow-2xl flex items-center transition-all focus-within:ring-1 focus-within:ring-white/20 px-6"
                     >
-                        <Button type="button" variant="ghost" size="icon" className="h-10 w-10 text-muted-foreground hover:bg-white/5 rounded-full shrink-0">
-                            <Plus size={20} />
-                        </Button>
-
                         <Input
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             placeholder="Ask anything"
-                            className="bg-transparent border-none focus-visible:ring-0 text-[16px] placeholder:text-muted-foreground/60 h-10 px-2"
+                            className="bg-transparent border-none focus-visible:ring-0 text-[16px] placeholder:text-muted-foreground/60 h-10 px-0 flex-1"
                         />
 
-                        <div className="flex items-center gap-1.5 shrink-0 pr-1">
-                            <Button type="button" variant="ghost" size="icon" className="h-10 w-10 text-muted-foreground hover:bg-white/5 rounded-full">
-                                <Mic size={20} />
-                            </Button>
-                            {input.trim() ? (
-                                <Button type="submit" size="icon" className="h-10 w-10 rounded-full bg-white text-black hover:bg-[#ececec]">
+                        <div className="flex items-center gap-1.5 shrink-0">
+                            {input.trim() && (
+                                <Button type="submit" size="icon" className="h-10 w-10 rounded-full bg-white text-black hover:bg-[#ececec] animate-in fade-in zoom-in duration-200">
                                     <Send size={18} />
                                 </Button>
-                            ) : (
-                                <div className="h-10 w-10 bg-[#424242] text-[#171717] rounded-full flex items-center justify-center">
-                                    <AudioLines size={18} />
-                                </div>
                             )}
                         </div>
                     </form>
@@ -250,7 +239,7 @@ export default function ChatPage() {
             {/* Footer Info */}
             <footer className="p-3 text-center">
                 <p className="text-[11px] text-muted-foreground font-medium opacity-50">
-                    ChatGPT can make mistakes. Check important info.
+                    Model Chat can make mistakes. Check important info.
                 </p>
             </footer>
 
