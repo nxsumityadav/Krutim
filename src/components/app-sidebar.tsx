@@ -16,9 +16,13 @@ import {
     SidebarGroup,
     SidebarGroupContent,
 } from "@/components/ui/sidebar";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export function AppSidebar() {
     const pathname = usePathname();
+
+    const isMobile = useIsMobile();
+    if (isMobile) return null;
 
     return (
         <Sidebar variant="inset" collapsible="icon" className="border-r border-border bg-sidebar">

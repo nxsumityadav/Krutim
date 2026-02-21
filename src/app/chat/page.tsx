@@ -531,20 +531,8 @@ export default function ChatPage() {
                 {/* Header content depends on loaded state, so we wrap in mounted check */}
                 {mounted ? (
                     <>
-                        {/* Back button or Sidebar Trigger for mobile */}
-                        <div className="md:hidden flex items-center justify-center w-11 h-11 shrink-0">
-                            {messages.length > 0 ? (
-                                <button
-                                    onClick={handleClearChat}
-                                    className="flex items-center justify-center text-[var(--chat-text)] dark:text-foreground focus:outline-none active:opacity-70 transition-opacity"
-                                    aria-label="Go back"
-                                >
-                                    <span className="material-symbols-rounded text-[24px]">arrow_back</span>
-                                </button>
-                            ) : (
-                                <SidebarTrigger className="text-[var(--chat-text)] dark:text-foreground [&_svg]:size-[24px]" />
-                            )}
-                        </div>
+                        {/* Mobile left-side padding for centering */}
+                        <div className="md:hidden w-11 shrink-0" />
 
                         {/* Mobile Model Selector */}
                         <div className="md:hidden absolute left-1/2 -translate-x-1/2 flex items-center justify-center">
