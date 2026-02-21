@@ -520,11 +520,23 @@ export default function ChatPage() {
         <div className="flex flex-col h-[100svh] font-sans bg-[var(--chat-surface)] text-[var(--chat-text)]">
             {/* Header */}
             <header className={cn(
-                "sticky top-0 z-20 px-4 h-[56px] md:h-auto md:py-3 flex items-center justify-between relative",
-                "bg-[var(--chat-surface)] dark:bg-background/80"
+                "sticky top-0 z-50 shrink-0 px-4 h-[56px] md:h-auto md:py-3 flex items-center justify-between",
+                "bg-[var(--chat-surface)] dark:bg-background/95 backdrop-blur-sm"
             )}>
-                {/* Sidebar Trigger for mobile */}
-                <SidebarTrigger className="md:hidden w-11 h-11 text-[var(--chat-text)] dark:text-foreground" />
+                {/* Back button or Sidebar Trigger for mobile */}
+                <div className="md:hidden flex items-center justify-center w-11 h-11 shrink-0">
+                    {messages.length > 0 ? (
+                        <button
+                            onClick={handleClearChat}
+                            className="flex items-center justify-center text-[var(--chat-text)] dark:text-foreground focus:outline-none active:opacity-70 transition-opacity"
+                            aria-label="Go back"
+                        >
+                            <span className="material-symbols-rounded text-[24px]">arrow_back</span>
+                        </button>
+                    ) : (
+                        <SidebarTrigger className="text-[var(--chat-text)] dark:text-foreground [&_svg]:size-[24px]" />
+                    )}
+                </div>
 
                 {/* Mobile Model Selector */}
                 <div className="md:hidden absolute left-1/2 -translate-x-1/2 flex items-center justify-center">
