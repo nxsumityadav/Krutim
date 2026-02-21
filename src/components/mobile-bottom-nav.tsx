@@ -15,15 +15,7 @@ const navItems = [
 
 export function MobileBottomNav() {
     const pathname = usePathname();
-    const { resolvedTheme } = useTheme();
     const { isActiveChat } = useChatState();
-    const [mounted, setMounted] = React.useState(false);
-
-    React.useEffect(() => {
-        setMounted(true);
-    }, []);
-
-    const isDark = mounted ? resolvedTheme === "dark" : false;
 
     // Hide when user is in an active chat (has messages)
     if (isActiveChat && pathname === "/chat") return null;
@@ -34,9 +26,8 @@ export function MobileBottomNav() {
                 "fixed bottom-0 left-0 right-0 z-50 md:hidden",
                 "flex items-end justify-around",
                 "pb-[env(safe-area-inset-bottom)]",
-                isDark
-                    ? "bg-[#1A1A1A] border-t border-[#2A2A2A]"
-                    : "bg-white border-t border-[#E5E5E5]"
+                "bg-white border-t border-[#E5E5E5]",
+                "dark:bg-[#1A1A1A] dark:border-[#2A2A2A]"
             )}
         >
             {navItems.map((item) => {
@@ -48,8 +39,8 @@ export function MobileBottomNav() {
                         className={cn(
                             "flex flex-col items-center justify-center gap-0.5 py-2.5 px-4 min-w-[72px] transition-colors",
                             isActive
-                                ? (isDark ? "text-[#EAEAEA]" : "text-[#171717]")
-                                : (isDark ? "text-[#EAEAEA]/40" : "text-[#171717]/40")
+                                ? "text-[#171717] dark:text-[#EAEAEA]"
+                                : "text-[#171717]/40 dark:text-[#EAEAEA]/40"
                         )}
                     >
                         <span

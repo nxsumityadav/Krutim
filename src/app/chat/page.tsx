@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
+import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { useTheme } from "@/components/theme-provider";
 import { useChatState } from "@/components/chat-state-provider";
 import { KrutimLogo } from "@/components/krutim-logo";
@@ -114,7 +115,7 @@ function ThinkingBlock({
                 <motion.div
                     className={cn(
                         "flex items-center gap-2 text-[13px] font-medium mb-3",
-                        isDark ? "text-foreground/60" : "text-muted-foreground"
+                        "text-muted-foreground dark:text-foreground/60"
                     )}
                     animate={{ opacity: [0.4, 1, 0.4] }}
                     transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
@@ -126,11 +127,11 @@ function ThinkingBlock({
                 {/* Visible reasoning while streaming */}
                 <div className={cn(
                     "relative pl-5 ml-2 max-h-[300px] overflow-y-auto",
-                    isDark ? "border-l border-white/10" : "border-l border-black/10"
+                    "border-l border-black/10 dark:border-l dark:border-white/10"
                 )}>
                     <div className={cn(
                         "text-[13px] leading-relaxed",
-                        isDark ? "text-foreground/40" : "text-muted-foreground/70"
+                        "text-muted-foreground/70 dark:text-foreground/40"
                     )}>
                         <MarkdownRenderer content={reasoning} isDark={isDark} />
                     </div>
@@ -146,9 +147,7 @@ function ThinkingBlock({
                 onClick={() => setIsOpen(!isOpen)}
                 className={cn(
                     "flex items-center gap-1.5 text-[13px] transition-colors cursor-pointer",
-                    isDark
-                        ? "text-foreground/40 hover:text-foreground/60"
-                        : "text-muted-foreground/70 hover:text-muted-foreground"
+                    "text-muted-foreground/70 hover:text-muted-foreground dark:text-foreground/40 dark:hover:text-foreground/60"
                 )}
             >
                 <span className="material-symbols-rounded text-[14px]">psychology</span>
@@ -172,11 +171,11 @@ function ThinkingBlock({
                     >
                         <div className={cn(
                             "relative pl-5 ml-2 mt-3 max-h-[400px] overflow-y-auto",
-                            isDark ? "border-l border-white/10" : "border-l border-black/10"
+                            "border-l border-black/10 dark:border-l dark:border-white/10"
                         )}>
                             <div className={cn(
                                 "text-[13px] leading-relaxed",
-                                isDark ? "text-foreground/40" : "text-muted-foreground/70"
+                                "text-muted-foreground/70 dark:text-foreground/40"
                             )}>
                                 <MarkdownRenderer content={reasoning} isDark={isDark} />
                             </div>
@@ -203,13 +202,7 @@ export default function ChatPage() {
     const reasoningStartRef = useRef<number | null>(null);
     const { resolvedTheme } = useTheme();
     const { setIsActiveChat } = useChatState();
-    const [mounted, setMounted] = useState(false);
-
-    useEffect(() => {
-        setMounted(true);
-    }, []);
-
-    const isDark = mounted ? resolvedTheme === "dark" : false;
+    const isDark = resolvedTheme === "dark";
 
     const getGreeting = () => {
         const hour = new Date().getHours();
@@ -528,29 +521,29 @@ export default function ChatPage() {
             {/* Header */}
             <header className={cn(
                 "sticky top-0 z-20 px-4 py-3 flex items-center justify-between relative",
-                isDark ? "bg-background/80" : "bg-[var(--chat-surface)]"
+                "bg-[var(--chat-surface)] dark:bg-background/80"
             )}>
-                {/* Spacer for mobile (balances the right-side buttons) */}
-                <div className="w-11 md:hidden" />
+                {/* Sidebar Trigger for mobile */}
+                <SidebarTrigger className="md:hidden w-11 h-11 text-[var(--chat-text)] dark:text-foreground" />
 
                 {/* Mobile Model Selector */}
                 <div className="md:hidden absolute left-1/2 -translate-x-1/2 flex items-center justify-center">
                     <Sheet>
                         <SheetTrigger className={cn(
                             "flex items-center gap-1.5 text-[20px] font-semibold focus:outline-none",
-                            isDark ? "text-foreground" : "text-[var(--chat-text)]"
+                            "text-[var(--chat-text)] dark:text-foreground"
                         )}>
                             {selectedModel?.name || "Select model"}
                             <span className="material-symbols-rounded text-[24px]">expand_more</span>
                         </SheetTrigger>
                         <SheetContent side="bottom" className={cn(
                             "rounded-t-3xl pb-10 border-t-0 px-4 max-h-[80vh] overflow-y-auto",
-                            isDark ? "bg-[#242424]" : "bg-[var(--chat-surface)]"
+                            "bg-[var(--chat-surface)] dark:bg-[#242424]"
                         )}>
                             <SheetHeader className="pb-4 pt-2">
                                 <SheetTitle className={cn(
                                     "text-center text-[22px] font-semibold",
-                                    isDark ? "text-foreground" : "text-[var(--chat-text)]"
+                                    "text-[var(--chat-text)] dark:text-foreground"
                                 )}>Select a model</SheetTitle>
                             </SheetHeader>
                             <div className="flex flex-col gap-2">
@@ -564,9 +557,9 @@ export default function ChatPage() {
                                             className={cn(
                                                 "flex items-center justify-between w-full px-4 py-3 rounded-2xl transition-colors cursor-pointer text-left focus:outline-none",
                                                 selectedModel?.id === m.id
-                                                    ? (isDark ? "bg-[#333]" : "bg-black/5")
+                                                    ? ("bg-black/5 dark:bg-[#333]")
                                                     : "bg-transparent hover:bg-black/5 dark:hover:bg-white/5",
-                                                isDark ? "text-foreground" : "text-[var(--chat-text)]"
+                                                "text-[var(--chat-text)] dark:text-foreground"
                                             )}
                                         >
                                             <div className="flex items-center gap-3">
@@ -604,17 +597,17 @@ export default function ChatPage() {
                     >
                         <SelectTrigger className={cn(
                             "w-auto max-w-[320px] h-10 border-transparent bg-transparent shadow-none hover:border-transparent focus:ring-0 text-[15px] font-semibold",
-                            isDark ? "text-foreground" : "text-[var(--chat-text)]"
+                            "text-[var(--chat-text)] dark:text-foreground"
                         )}>
                             <SelectValue placeholder="Select model" />
                         </SelectTrigger>
                         <SelectContent className={cn(
-                            isDark ? "bg-[#242424] border-[#333]" : "bg-popover border-border"
+                            "bg-popover border-border dark:bg-[#242424] dark:border-[#333]"
                         )}>
                             {models.map(m => (
                                 <SelectItem key={m.id} value={m.id} className={cn(
                                     "cursor-pointer",
-                                    isDark ? "focus:bg-[#2A2A2A]" : "focus:bg-muted"
+                                    "focus:bg-muted dark:focus:bg-[#2A2A2A]"
                                 )}>
                                     <div className="flex items-center gap-2">
                                         <span className={cn(
@@ -639,7 +632,7 @@ export default function ChatPage() {
                             onClick={handleClearChat}
                             className={cn(
                                 "h-11 w-11 rounded-full",
-                                isDark ? "bg-[#2A2A2A] text-foreground" : "bg-white/80 text-[var(--chat-text)]"
+                                "bg-white/80 text-[var(--chat-text)] dark:bg-[#2A2A2A] dark:text-foreground"
                             )}
                         >
                             <span className="material-symbols-rounded text-[20px]">delete_outline</span>
@@ -654,7 +647,7 @@ export default function ChatPage() {
                     {messages.length === 0 ? (
                         <div className="h-full flex flex-col items-center justify-center px-6 pb-40 text-center">
                             <div className="relative flex flex-col items-center gap-5">
-                                <span className={isDark ? "text-foreground" : "text-[var(--chat-text)]"}>
+                                <span className={"text-[var(--chat-text)] dark:text-foreground"}>
                                     <KrutimLogo size={48} />
                                 </span>
                                 <h2 className="text-3xl md:text-4xl font-bold text-[var(--chat-text)]">
@@ -671,7 +664,7 @@ export default function ChatPage() {
                                         <div className="flex justify-end">
                                             <div className={cn(
                                                 "inline-block p-3 md:p-4 rounded-2xl w-full space-y-2",
-                                                isDark ? "bg-[#2a2a2a] text-[#EAEAEA]" : "bg-[#F5F5F5] text-[#171717]"
+                                                "bg-[#F5F5F5] text-[#171717] dark:bg-[#2a2a2a] dark:text-[#EAEAEA]"
                                             )}>
                                                 {/* Images */}
                                                 {m.images && m.images.length > 0 && (
@@ -699,11 +692,11 @@ export default function ChatPage() {
                                             <div className={cn(
                                                 "w-8 h-8 rounded-full items-center justify-center mt-1 shrink-0",
                                                 "hidden",
-                                                isDark ? "bg-[#242424] border border-[#333]" : "bg-white border border-black/5"
+                                                "bg-white border border-black/5 dark:bg-[#242424] dark:border dark:border-[#333]"
                                             )}>
                                                 <span className={cn(
                                                     "material-symbols-rounded text-[16px]",
-                                                    isDark ? "text-foreground" : "text-[var(--chat-text)]"
+                                                    "text-[var(--chat-text)] dark:text-foreground"
                                                 )}>smart_toy</span>
                                             </div>
 
@@ -723,7 +716,7 @@ export default function ChatPage() {
                                                     {m.content ? (
                                                         <div className={cn(
                                                             "text-[15px] leading-relaxed",
-                                                            isDark ? "text-foreground" : "text-[var(--chat-text)]"
+                                                            "text-[var(--chat-text)] dark:text-foreground"
                                                         )}>
                                                             <MarkdownRenderer content={m.content} isDark={isDark} />
                                                         </div>
@@ -740,7 +733,7 @@ export default function ChatPage() {
                                                 {m.model && !isLastAssistantStreaming(i) && (
                                                     <p className={cn(
                                                         "text-[11px] mt-2 flex items-center gap-1",
-                                                        isDark ? "text-foreground/30" : "text-muted-foreground/60"
+                                                        "text-muted-foreground/60 dark:text-foreground/30"
                                                     )}>
                                                         <span className="material-symbols-rounded text-[14px]">smart_toy</span>
                                                         Prepared using {m.model}
@@ -752,7 +745,7 @@ export default function ChatPage() {
                                                         disabled={isLoading}
                                                         className={cn(
                                                             "p-1.5 rounded-md transition-colors flex items-center justify-center",
-                                                            isLoading ? "opacity-50 cursor-not-allowed" : (isDark ? "hover:bg-[#2A2A2A] text-foreground/40 hover:text-foreground" : "hover:bg-black/5 text-muted-foreground hover:text-[var(--chat-text)]")
+                                                            isLoading ? "opacity-50 cursor-not-allowed" : ("hover:bg-black/5 text-muted-foreground hover:text-[var(--chat-text)] dark:hover:bg-[#2A2A2A] dark:text-foreground/40 dark:hover:text-foreground")
                                                         )}
                                                         title="Regenerate with a different model"
                                                     >
@@ -762,7 +755,7 @@ export default function ChatPage() {
                                                         onClick={() => handleCopy(m.content, i)}
                                                         className={cn(
                                                             "p-1.5 rounded-md transition-colors flex items-center justify-center",
-                                                            isDark ? "hover:bg-[#2A2A2A] text-foreground/40 hover:text-foreground" : "hover:bg-black/5 text-muted-foreground hover:text-[var(--chat-text)]"
+                                                            "hover:bg-black/5 text-muted-foreground hover:text-[var(--chat-text)] dark:hover:bg-[#2A2A2A] dark:text-foreground/40 dark:hover:text-foreground"
                                                         )}
                                                         title="Copy message"
                                                     >
@@ -793,9 +786,7 @@ export default function ChatPage() {
                             onDragOver={(e) => e.preventDefault()}
                             className={cn(
                                 "flex flex-col rounded-[24px] border transition-all p-3 overflow-hidden",
-                                isDark
-                                    ? "bg-[#2a2a2a] border-[#333] focus-within:border-[#555]"
-                                    : "bg-[#F5F5F5] border-[#E5E5E5] focus-within:border-[#CCCCCC]"
+                                "bg-[#F5F5F5] border-[#E5E5E5] focus-within:border-[#CCCCCC] dark:bg-[#2a2a2a] dark:border-[#333] dark:focus-within:border-[#555]"
                             )}
                         >
                             {/* Image previews */}
@@ -813,7 +804,7 @@ export default function ChatPage() {
                                                 onClick={() => removeImage(idx)}
                                                 className={cn(
                                                     "absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity",
-                                                    isDark ? "bg-[#555] text-white" : "bg-[#333] text-white"
+                                                    "bg-[#333] text-white dark:bg-[#555] dark:text-white"
                                                 )}
                                             >
                                                 <span className="material-symbols-rounded text-[12px]">close</span>
@@ -847,7 +838,7 @@ export default function ChatPage() {
                                 data-enable-grammarly="false"
                                 className={cn(
                                     "w-full bg-transparent border-none focus-visible:ring-0 text-[16px] placeholder:text-[16px] px-2 py-1 resize-none outline-none min-h-[48px] max-h-[200px] overflow-y-auto",
-                                    isDark ? "placeholder:text-muted-foreground text-foreground" : "placeholder:text-muted-foreground text-[var(--chat-text)]"
+                                    "placeholder:text-muted-foreground text-[var(--chat-text)] dark:placeholder:text-muted-foreground dark:text-foreground"
                                 )}
                                 disabled={isLoading}
                                 rows={1}
@@ -873,7 +864,7 @@ export default function ChatPage() {
                                     onClick={() => fileInputRef.current?.click()}
                                     className={cn(
                                         "p-1.5 rounded-full transition-colors",
-                                        isDark ? "text-[#EAEAEA]/40 hover:text-[#EAEAEA]/70" : "text-[#737373] hover:text-[#171717]"
+                                        "text-[#737373] hover:text-[#171717] dark:text-[#EAEAEA]/40 dark:hover:text-[#EAEAEA]/70"
                                     )}
                                     title="Attach image"
                                 >
@@ -887,8 +878,8 @@ export default function ChatPage() {
                                     className={cn(
                                         "h-10 w-10 shrink-0 rounded-full transition-all",
                                         (input.trim() || pendingImages.length > 0)
-                                            ? (isDark ? "bg-white hover:bg-white/90 text-black" : "bg-[#171717] hover:bg-[#333] text-white")
-                                            : (isDark ? "bg-[#333] text-muted-foreground" : "bg-[#E5E5E5] text-muted-foreground"),
+                                            ? ("bg-[#171717] hover:bg-[#333] text-white dark:bg-white dark:hover:bg-white/90 dark:text-black")
+                                            : ("bg-[#E5E5E5] text-muted-foreground dark:bg-[#333] dark:text-muted-foreground"),
                                         isLoading && "opacity-50 cursor-not-allowed"
                                     )}
                                 >

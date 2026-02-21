@@ -91,7 +91,7 @@ export default function ModelsStatusPage() {
     return (
         <div className={cn(
             "min-h-[100svh] p-4 md:p-8 pb-24 md:pb-8",
-            isDark ? "bg-[#1A1A1A] text-[#EAEAEA]" : "bg-white text-[#171717]"
+            "bg-white text-[#171717] dark:bg-[#1A1A1A] dark:text-[#EAEAEA]"
         )}>
             <div className="max-w-2xl mx-auto space-y-6">
                 {/* Header */}
@@ -102,17 +102,17 @@ export default function ModelsStatusPage() {
                 {/* Availability Card */}
                 <div className={cn(
                     "rounded-2xl p-5 space-y-4",
-                    isDark ? "bg-[#242424] border border-[#333]" : "bg-[#FAFAFA] border border-[#E5E5E5]"
+                    "bg-[#FAFAFA] border border-[#E5E5E5] dark:bg-[#242424] dark:border dark:border-[#333]"
                 )}>
                     <h2 className={cn(
                         "text-[15px] font-medium",
-                        isDark ? "text-[#EAEAEA]/60" : "text-[#737373]"
+                        "text-[#737373] dark:text-[#EAEAEA]/60"
                     )}>Availability</h2>
 
                     <div className="flex items-center justify-between">
                         <span className={cn(
                             "text-[15px]",
-                            isDark ? "text-[#EAEAEA]/60" : "text-[#737373]"
+                            "text-[#737373] dark:text-[#EAEAEA]/60"
                         )}>Active Models</span>
                         <span className="text-xl font-bold">{available}/{total}</span>
                     </div>
@@ -120,12 +120,12 @@ export default function ModelsStatusPage() {
                     {/* Progress bar */}
                     <div className={cn(
                         "w-full h-2 rounded-full overflow-hidden",
-                        isDark ? "bg-[#333]" : "bg-[#E5E5E5]"
+                        "bg-[#E5E5E5] dark:bg-[#333]"
                     )}>
                         <div
                             className={cn(
                                 "h-full rounded-full transition-all duration-500 ease-out",
-                                isDark ? "bg-[#EAEAEA]" : "bg-[#171717]"
+                                "bg-[#171717] dark:bg-[#EAEAEA]"
                             )}
                             style={{ width: `${pct}%` }}
                         />
@@ -136,14 +136,14 @@ export default function ModelsStatusPage() {
                         <Badge variant="outline" className={cn(
                             "text-[11px] py-0.5 px-2.5 rounded-full font-medium",
                             "bg-green-500/10 border-green-500/20",
-                            isDark ? "text-green-400" : "text-green-600"
+                            "text-green-600 dark:text-green-400"
                         )}>
                             Ready {available}
                         </Badge>
                         <Badge variant="outline" className={cn(
                             "text-[11px] py-0.5 px-2.5 rounded-full font-medium",
                             "bg-red-500/10 border-red-500/20",
-                            isDark ? "text-red-400" : "text-red-500"
+                            "text-red-500 dark:text-red-400"
                         )}>
                             Offline {unavailable}
                         </Badge>
@@ -151,7 +151,7 @@ export default function ModelsStatusPage() {
                             <Badge variant="outline" className={cn(
                                 "text-[11px] py-0.5 px-2.5 rounded-full font-medium",
                                 "bg-yellow-500/10 border-yellow-500/20",
-                                isDark ? "text-yellow-400" : "text-yellow-600"
+                                "text-yellow-600 dark:text-yellow-400"
                             )}>
                                 Unknown {unknown}
                             </Badge>
@@ -168,7 +168,7 @@ export default function ModelsStatusPage() {
                                 key={model.id}
                                 className={cn(
                                     "rounded-2xl transition-colors overflow-hidden",
-                                    isDark ? "bg-[#242424] border border-[#333]" : "bg-[#FAFAFA] border border-[#E5E5E5]"
+                                    "bg-[#FAFAFA] border border-[#E5E5E5] dark:bg-[#242424] dark:border dark:border-[#333]"
                                 )}
                             >
                                 {/* Main row — clickable to expand */}
@@ -190,7 +190,7 @@ export default function ModelsStatusPage() {
                                             )}>{model.name || model.model_identifier || model.id}</p>
                                             <p className={cn(
                                                 "text-[12px] font-mono truncate",
-                                                isDark ? "text-[#EAEAEA]/30" : "text-[#737373]/60"
+                                                "text-[#737373]/60 dark:text-[#EAEAEA]/30"
                                             )}>{model.model_identifier || "—"}</p>
                                         </div>
                                     </div>
@@ -198,17 +198,17 @@ export default function ModelsStatusPage() {
                                         {model.response_time_ms > 0 && (
                                             <span className={cn(
                                                 "text-[12px]",
-                                                isDark ? "text-[#EAEAEA]/40" : "text-[#737373]"
+                                                "text-[#737373] dark:text-[#EAEAEA]/40"
                                             )}>{model.response_time_ms}ms</span>
                                         )}
                                         <Badge
                                             className={cn(
                                                 "capitalize text-[11px] px-2 py-0.5 rounded-full font-medium border-0",
                                                 model.status === "available"
-                                                    ? (isDark ? "bg-green-500/10 text-green-400" : "bg-green-500/10 text-green-600")
+                                                    ? ("bg-green-500/10 text-green-600 dark:bg-green-500/10 dark:text-green-400")
                                                     : model.status === "unavailable"
-                                                        ? (isDark ? "bg-red-500/10 text-red-400" : "bg-red-500/10 text-red-500")
-                                                        : (isDark ? "bg-yellow-500/10 text-yellow-400" : "bg-yellow-500/10 text-yellow-600")
+                                                        ? ("bg-red-500/10 text-red-500 dark:bg-red-500/10 dark:text-red-400")
+                                                        : ("bg-yellow-500/10 text-yellow-600 dark:bg-yellow-500/10 dark:text-yellow-400")
                                             )}
                                         >
                                             {model.status === "available" ? "Ready" : model.status === "unavailable" ? "Offline" : "Unknown"}
@@ -216,7 +216,7 @@ export default function ModelsStatusPage() {
                                         <span className={cn(
                                             "material-symbols-rounded text-[18px] transition-transform duration-200",
                                             isExpanded && "rotate-180",
-                                            isDark ? "text-[#EAEAEA]/30" : "text-[#737373]/50"
+                                            "text-[#737373]/50 dark:text-[#EAEAEA]/30"
                                         )}>expand_more</span>
                                     </div>
                                 </button>
@@ -225,7 +225,7 @@ export default function ModelsStatusPage() {
                                 {isExpanded && (
                                     <div className={cn(
                                         "px-4 pb-4 pt-1 space-y-2.5",
-                                        isDark ? "border-t border-[#333]" : "border-t border-[#E5E5E5]"
+                                        "border-t border-[#E5E5E5] dark:border-t dark:border-[#333]"
                                     )}>
                                         {/* Detail rows */}
                                         <DetailRow label="Model ID" value={model.model_identifier} isDark={isDark} mono />
@@ -238,11 +238,11 @@ export default function ModelsStatusPage() {
                                             <div className="pt-1">
                                                 <p className={cn(
                                                     "text-[11px] font-medium mb-1.5",
-                                                    isDark ? "text-red-400" : "text-red-500"
+                                                    "text-red-500 dark:text-red-400"
                                                 )}>Error</p>
                                                 <div className={cn(
                                                     "text-[12px] font-mono leading-relaxed p-3 rounded-xl break-all whitespace-pre-wrap",
-                                                    isDark ? "bg-[#1A1A1A] text-[#EAEAEA]/60" : "bg-white text-[#737373]"
+                                                    "bg-white text-[#737373] dark:bg-[#1A1A1A] dark:text-[#EAEAEA]/60"
                                                 )}>
                                                     {model.error_message}
                                                 </div>
@@ -264,12 +264,12 @@ function DetailRow({ label, value, isDark, mono }: { label: string; value: strin
         <div className="flex items-start justify-between gap-4">
             <span className={cn(
                 "text-[12px] shrink-0",
-                isDark ? "text-[#EAEAEA]/40" : "text-[#737373]"
+                "text-[#737373] dark:text-[#EAEAEA]/40"
             )}>{label}</span>
             <span className={cn(
                 "text-[12px] text-right break-all min-w-0",
                 mono && "font-mono",
-                isDark ? "text-[#EAEAEA]/70" : "text-[#171717]/70"
+                "text-[#171717]/70 dark:text-[#EAEAEA]/70"
             )}>{value || "—"}</span>
         </div>
     );

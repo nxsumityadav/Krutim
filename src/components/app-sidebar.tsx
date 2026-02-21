@@ -19,20 +19,12 @@ import {
 
 export function AppSidebar() {
     const pathname = usePathname();
-    const { resolvedTheme } = useTheme();
-    const [mounted, setMounted] = React.useState(false);
-
-    React.useEffect(() => {
-        setMounted(true);
-    }, []);
-
-    const isDark = mounted ? resolvedTheme === "dark" : false; // Or default to whatever makes sense
 
     return (
         <Sidebar variant="inset" collapsible="icon" className="border-r border-border bg-sidebar">
             <SidebarHeader className="p-4">
                 <div className="flex items-center gap-3 px-2 py-1">
-                    <span className={isDark ? "text-foreground" : "text-[var(--chat-text)]"}>
+                    <span className="text-[var(--chat-text)] dark:text-foreground">
                         <KrutimLogo size={24} />
                     </span>
                     <span className="text-xl font-bold tracking-tight">Krutim</span>

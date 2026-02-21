@@ -28,10 +28,15 @@ function getEffectiveTheme(): "light" | "dark" {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-    const [theme, setTheme] = useState<Theme>(getStoredTheme);
-    const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">(() => getEffectiveTheme());
+    const [theme, setTheme] = useState<Theme>("auto");
+    const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">("light");
 
     useEffect(() => {
+        const stored = getStoredTheme();
+        if (stored !== "auto") {
+            setTheme(stored);
+        }
+
         const applyTheme = () => {
             const effective = getEffectiveTheme();
             setResolvedTheme(effective);
