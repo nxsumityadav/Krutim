@@ -19,8 +19,8 @@ interface Model {
     created_at?: string;
 }
 
-function timeAgo(dateStr: string): string {
-    if (!dateStr) return "—";
+function timeAgo(dateStr: string, mounted: boolean): string {
+    if (!dateStr || !mounted) return "—";
     const now = Date.now();
     const then = new Date(dateStr).getTime();
     const diffSec = Math.floor((now - then) / 1000);
@@ -230,8 +230,8 @@ export default function ModelsStatusPage() {
                                         {/* Detail rows */}
                                         <DetailRow label="Model ID" value={model.model_identifier} isDark={isDark} mono />
                                         <DetailRow label="Response Time" value={model.response_time_ms > 0 ? `${model.response_time_ms}ms` : "—"} isDark={isDark} />
-                                        <DetailRow label="Last Checked" value={model.last_checked ? timeAgo(model.last_checked) : "—"} isDark={isDark} />
-                                        <DetailRow label="Created" value={model.created_at ? new Date(model.created_at).toLocaleDateString() : "—"} isDark={isDark} />
+                                        <DetailRow label="Last Checked" value={model.last_checked ? timeAgo(model.last_checked, mounted) : "—"} isDark={isDark} />
+                                        <DetailRow label="Created" value={model.created_at && mounted ? new Date(model.created_at).toLocaleDateString() : "—"} isDark={isDark} />
 
                                         {/* Error message */}
                                         {model.error_message && (
