@@ -525,143 +525,140 @@ export default function ChatPage() {
         <div className="flex flex-col h-[100svh] font-sans bg-[var(--chat-surface)] text-[var(--chat-text)]">
             {/* Header */}
             <header className={cn(
-                "sticky top-0 z-50 shrink-0 px-4 h-[56px] md:h-auto md:py-3 flex items-center justify-between",
+                "sticky top-0 z-50 shrink-0 px-4 h-[56px] py-2 flex items-center justify-between",
                 "bg-[var(--chat-surface)] dark:bg-background/95 backdrop-blur-sm"
             )}>
                 {/* Header content depends on loaded state, so we wrap in mounted check */}
                 {mounted ? (
                     <>
-                        {/* Mobile left-side padding for centering */}
-                        <div className="md:hidden w-11 shrink-0" />
+                        {/* Placeholder for left side to keep model selector centered */}
+                        <div className="w-10 shrink-0" />
 
-                        {/* Mobile Model Selector */}
-                        <div className="md:hidden absolute left-1/2 -translate-x-1/2 flex items-center justify-center">
-                            <Sheet>
-                                <SheetTrigger className={cn(
-                                    "flex items-center gap-1.5 text-[20px] font-semibold focus:outline-none",
-                                    "text-[var(--chat-text)] dark:text-foreground"
-                                )}>
-                                    {selectedModel?.name || "Select model"}
-                                    <span className="material-symbols-rounded text-[24px]">expand_more</span>
-                                </SheetTrigger>
-                                <SheetContent side="bottom" className={cn(
-                                    "rounded-t-3xl pb-10 border-t-0 px-4 max-h-[80vh] overflow-y-auto",
-                                    "bg-[var(--chat-surface)] dark:bg-[#242424]"
-                                )}>
-                                    <SheetHeader className="pb-4 pt-2">
-                                        <SheetTitle className={cn(
-                                            "text-center text-[22px] font-semibold",
-                                            "text-[var(--chat-text)] dark:text-foreground"
-                                        )}>Select a model</SheetTitle>
-                                    </SheetHeader>
-                                    <div className="flex flex-col gap-2">
-                                        {[...models].sort((a, b) => (a.status === 'available' ? -1 : 1) - (b.status === 'available' ? -1 : 1)).map(m => (
-                                            <SheetClose asChild key={m.id}>
-                                                <button
-                                                    onClick={() => {
-                                                        setSelectedModel(m);
-                                                        localStorage.setItem("selected_model_id", m.id);
-                                                    }}
-                                                    className={cn(
-                                                        "flex items-center justify-between w-full px-4 py-3 rounded-2xl transition-colors cursor-pointer text-left focus:outline-none",
-                                                        selectedModel?.id === m.id
-                                                            ? ("bg-black/5 dark:bg-[#333]")
-                                                            : "bg-transparent hover:bg-black/5 dark:hover:bg-white/5",
-                                                        "text-[var(--chat-text)] dark:text-foreground"
-                                                    )}
-                                                >
-                                                    <div className="flex items-center gap-3">
-                                                        <div className={cn(
-                                                            "w-2.5 h-2.5 rounded-full",
-                                                            m.status === 'available' ? "bg-green-500" :
-                                                                m.status === 'unavailable' ? "bg-red-500" :
-                                                                    "bg-yellow-500"
-                                                        )} />
-                                                        <span className={cn(
-                                                            "text-[17px] font-medium",
-                                                            m.status !== 'available' && "opacity-60"
-                                                        )}>{m.name}</span>
-                                                    </div>
-                                                    {selectedModel?.id === m.id && (
-                                                        <span className="material-symbols-rounded text-[20px]">check</span>
-                                                    )}
-                                                </button>
-                                            </SheetClose>
+                        {/* Centered Model Selector */}
+                        <div className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center">
+                            {/* Mobile Sheet (md:hidden) */}
+                            <div className="md:hidden">
+                                <Sheet>
+                                    <SheetTrigger className={cn(
+                                        "flex items-center gap-1.5 text-[20px] font-semibold focus:outline-none h-10",
+                                        "text-[var(--chat-text)] dark:text-foreground"
+                                    )}>
+                                        {selectedModel?.name || "Select model"}
+                                        <span className="material-symbols-rounded text-[24px]">expand_more</span>
+                                    </SheetTrigger>
+                                    <SheetContent side="bottom" className={cn(
+                                        "rounded-t-3xl pb-10 border-t-0 px-4 max-h-[80vh] overflow-y-auto",
+                                        "bg-[var(--chat-surface)] dark:bg-[#242424]"
+                                    )}>
+                                        <SheetHeader className="pb-4 pt-2">
+                                            <SheetTitle className={cn(
+                                                "text-center text-[22px] font-semibold",
+                                                "text-[var(--chat-text)] dark:text-foreground"
+                                            )}>Select a model</SheetTitle>
+                                        </SheetHeader>
+                                        <div className="flex flex-col gap-2">
+                                            {[...models].sort((a, b) => (a.status === 'available' ? -1 : 1) - (b.status === 'available' ? -1 : 1)).map(m => (
+                                                <SheetClose asChild key={m.id}>
+                                                    <button
+                                                        onClick={() => {
+                                                            setSelectedModel(m);
+                                                            localStorage.setItem("selected_model_id", m.id);
+                                                        }}
+                                                        className={cn(
+                                                            "flex items-center justify-between w-full px-4 py-3 rounded-2xl transition-colors cursor-pointer text-left focus:outline-none",
+                                                            selectedModel?.id === m.id
+                                                                ? ("bg-black/5 dark:bg-[#333]")
+                                                                : "bg-transparent hover:bg-black/5 dark:hover:bg-white/5",
+                                                            "text-[var(--chat-text)] dark:text-foreground"
+                                                        )}
+                                                    >
+                                                        <div className="flex items-center gap-3">
+                                                            <div className={cn(
+                                                                "w-2.5 h-2.5 rounded-full",
+                                                                m.status === 'available' ? "bg-green-500" :
+                                                                    m.status === 'unavailable' ? "bg-red-500" :
+                                                                        "bg-yellow-500"
+                                                            )} />
+                                                            <span className={cn(
+                                                                "text-[17px] font-medium",
+                                                                m.status !== 'available' && "opacity-60"
+                                                            )}>{m.name}</span>
+                                                        </div>
+                                                        {selectedModel?.id === m.id && (
+                                                            <span className="material-symbols-rounded text-[20px]">check</span>
+                                                        )}
+                                                    </button>
+                                                </SheetClose>
+                                            ))}
+                                        </div>
+                                    </SheetContent>
+                                </Sheet>
+                            </div>
+
+                            {/* Desktop Selector (hidden md:flex) */}
+                            <div className="hidden md:flex items-center">
+                                <Select
+                                    value={selectedModel?.id ?? ""}
+                                    onValueChange={(id) => {
+                                        const model = models.find(m => m.id === id) || null;
+                                        setSelectedModel(model);
+                                        if (model) localStorage.setItem("selected_model_id", model.id);
+                                    }}
+                                >
+                                    <SelectTrigger className={cn(
+                                        "w-auto max-w-[320px] h-10 border-transparent bg-transparent shadow-none hover:border-transparent focus:ring-0 text-[18px] font-semibold",
+                                        "text-[var(--chat-text)] dark:text-foreground"
+                                    )}>
+                                        <SelectValue placeholder="Select model" />
+                                    </SelectTrigger>
+                                    <SelectContent className={cn(
+                                        "bg-popover border-border dark:bg-[#242424] dark:border-[#333]"
+                                    )}>
+                                        {models.map(m => (
+                                            <SelectItem key={m.id} value={m.id} className={cn(
+                                                "cursor-pointer",
+                                                "focus:bg-muted dark:focus:bg-[#2A2A2A]"
+                                            )}>
+                                                <div className="flex items-center gap-2">
+                                                    <span className={cn(
+                                                        "w-2 h-2 rounded-full shrink-0",
+                                                        m.status === 'available' ? "bg-green-500" :
+                                                            m.status === 'unavailable' ? "bg-red-500" :
+                                                                "bg-yellow-500"
+                                                    )} />
+                                                    <span>{m.name}</span>
+                                                </div>
+                                            </SelectItem>
                                         ))}
-                                    </div>
-                                </SheetContent>
-                            </Sheet>
+                                    </SelectContent>
+                                </Select>
+                            </div>
                         </div>
 
-                        {/* Desktop Model Selector */}
-                        <div className="hidden md:flex items-center gap-2 mx-auto md:mx-0">
-                            <Select
-                                value={selectedModel?.id ?? ""}
-                                onValueChange={(id) => {
-                                    const model = models.find(m => m.id === id) || null;
-                                    setSelectedModel(model);
-                                    if (model) localStorage.setItem("selected_model_id", model.id);
-                                }}
-                            >
-                                <SelectTrigger className={cn(
-                                    "w-auto max-w-[320px] h-10 border-transparent bg-transparent shadow-none hover:border-transparent focus:ring-0 text-[15px] font-semibold",
-                                    "text-[var(--chat-text)] dark:text-foreground"
-                                )}>
-                                    <SelectValue placeholder="Select model" />
-                                </SelectTrigger>
-                                <SelectContent className={cn(
-                                    "bg-popover border-border dark:bg-[#242424] dark:border-[#333]"
-                                )}>
-                                    {models.map(m => (
-                                        <SelectItem key={m.id} value={m.id} className={cn(
-                                            "cursor-pointer",
-                                            "focus:bg-muted dark:focus:bg-[#2A2A2A]"
-                                        )}>
-                                            <div className="flex items-center gap-2">
-                                                <span className={cn(
-                                                    "w-2 h-2 rounded-full shrink-0",
-                                                    m.status === 'available' ? "bg-green-500" :
-                                                        m.status === 'unavailable' ? "bg-red-500" :
-                                                            "bg-yellow-500"
-                                                )} />
-                                                <span>{m.name}</span>
-                                            </div>
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                        {/* Right side Actions */}
+                        <div className="flex items-center justify-end w-10 shrink-0">
+                            {messages.length > 0 && (
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={handleClearChat}
+                                    className={cn(
+                                        "h-10 w-10 rounded-full",
+                                        "bg-white/80 text-[var(--chat-text)] dark:bg-[#2A2A2A] dark:text-foreground"
+                                    )}
+                                >
+                                    <span className="material-symbols-rounded text-[24px]">delete</span>
+                                </Button>
+                            )}
                         </div>
                     </>
                 ) : (
-                    <>
-                        {/* SSR/Initial placeholder */}
-                        <div className="md:hidden flex items-center justify-center w-11 h-11 shrink-0" />
-                        <div className="md:hidden absolute left-1/2 -translate-x-1/2 flex items-center justify-center">
-                            <span className="text-[20px] font-semibold text-[var(--chat-text)] dark:text-foreground">
-                                Select model
-                            </span>
-                        </div>
-                        <div className="hidden md:flex items-center h-10 px-3 text-[15px] font-semibold text-[var(--chat-text)] dark:text-foreground opacity-50">
+                    <div className="w-full h-10 flex items-center justify-center">
+                        <span className="text-[20px] font-semibold text-[var(--chat-text)] dark:text-foreground opacity-50">
                             Select model
-                        </div>
-                    </>
+                        </span>
+                    </div>
                 )}
-
-                <div className="flex items-center gap-1 md:relative absolute right-4">
-                    {messages.length > 0 && (
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={handleClearChat}
-                            className={cn(
-                                "h-11 w-11 rounded-full",
-                                "bg-white/80 text-[var(--chat-text)] dark:bg-[#2A2A2A] dark:text-foreground"
-                            )}
-                        >
-                            <span className="material-symbols-rounded text-[20px]">delete_outline</span>
-                        </Button>
-                    )}
-                </div>
             </header>
 
             {/* Main Chat Area */}
