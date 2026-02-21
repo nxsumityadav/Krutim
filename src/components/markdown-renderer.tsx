@@ -6,15 +6,8 @@ import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { oneLight, oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { oneLight, oneDark } from "react-syntax-highlighter/dist/cjs/styles/prism";
 import { cn } from "@/lib/utils";
-import mermaid from "mermaid";
-
-mermaid.initialize({
-    startOnLoad: false,
-    securityLevel: "loose",
-    fontFamily: "inherit",
-});
 
 function MermaidDiagram({ chart, isDark }: { chart: string; isDark: boolean }) {
     const containerRef = useRef<HTMLDivElement>(null);
@@ -24,6 +17,7 @@ function MermaidDiagram({ chart, isDark }: { chart: string; isDark: boolean }) {
     useEffect(() => {
         const renderDiagram = async () => {
             try {
+                const mermaid = (await import("mermaid")).default;
                 mermaid.initialize({
                     startOnLoad: false,
                     theme: isDark ? "dark" : "neutral",
