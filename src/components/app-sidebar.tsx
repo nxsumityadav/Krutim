@@ -20,7 +20,13 @@ import {
 export function AppSidebar() {
     const pathname = usePathname();
     const { resolvedTheme } = useTheme();
-    const isDark = resolvedTheme === "dark";
+    const [mounted, setMounted] = React.useState(false);
+
+    React.useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    const isDark = mounted ? resolvedTheme === "dark" : false; // Or default to whatever makes sense
 
     return (
         <Sidebar variant="inset" collapsible="icon" className="border-r border-border bg-sidebar">

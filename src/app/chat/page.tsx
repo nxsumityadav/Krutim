@@ -203,7 +203,13 @@ export default function ChatPage() {
     const reasoningStartRef = useRef<number | null>(null);
     const { resolvedTheme } = useTheme();
     const { setIsActiveChat } = useChatState();
-    const isDark = resolvedTheme === "dark";
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    const isDark = mounted ? resolvedTheme === "dark" : false;
 
     const getGreeting = () => {
         const hour = new Date().getHours();
@@ -557,7 +563,7 @@ export default function ChatPage() {
                                             }}
                                             className={cn(
                                                 "flex items-center justify-between w-full px-4 py-3 rounded-2xl transition-colors cursor-pointer text-left focus:outline-none",
-                                                selectedModel?.id === m.id 
+                                                selectedModel?.id === m.id
                                                     ? (isDark ? "bg-[#333]" : "bg-black/5")
                                                     : "bg-transparent hover:bg-black/5 dark:hover:bg-white/5",
                                                 isDark ? "text-foreground" : "text-[var(--chat-text)]"
@@ -567,8 +573,8 @@ export default function ChatPage() {
                                                 <div className={cn(
                                                     "w-2.5 h-2.5 rounded-full",
                                                     m.status === 'available' ? "bg-green-500" :
-                                                    m.status === 'unavailable' ? "bg-red-500" :
-                                                    "bg-yellow-500"
+                                                        m.status === 'unavailable' ? "bg-red-500" :
+                                                            "bg-yellow-500"
                                                 )} />
                                                 <span className={cn(
                                                     "text-[17px] font-medium",
@@ -614,8 +620,8 @@ export default function ChatPage() {
                                         <span className={cn(
                                             "w-2 h-2 rounded-full shrink-0",
                                             m.status === 'available' ? "bg-green-500" :
-                                            m.status === 'unavailable' ? "bg-red-500" :
-                                            "bg-yellow-500"
+                                                m.status === 'unavailable' ? "bg-red-500" :
+                                                    "bg-yellow-500"
                                         )} />
                                         <span>{m.name}</span>
                                     </div>
@@ -627,9 +633,9 @@ export default function ChatPage() {
 
                 <div className="flex items-center gap-1 md:relative absolute right-4">
                     {messages.length > 0 && (
-                        <Button 
-                            variant="ghost" 
-                            size="icon" 
+                        <Button
+                            variant="ghost"
+                            size="icon"
                             onClick={handleClearChat}
                             className={cn(
                                 "h-11 w-11 rounded-full",
@@ -859,7 +865,7 @@ export default function ChatPage() {
                                     e.target.value = "";
                                 }}
                             />
-                            
+
                             <div className="flex items-center justify-between mt-1">
                                 {/* Attach image button */}
                                 <button

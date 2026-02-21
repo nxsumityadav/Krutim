@@ -36,8 +36,14 @@ function timeAgo(dateStr: string): string {
 export default function ModelsStatusPage() {
     const [models, setModels] = useState<Model[]>([]);
     const [expandedId, setExpandedId] = useState<string | null>(null);
+    const [mounted, setMounted] = useState(false);
     const { resolvedTheme } = useTheme();
-    const isDark = resolvedTheme === "dark";
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    const isDark = mounted ? resolvedTheme === "dark" : false;
 
     const available = models.filter(m => m.status === "available").length;
     const unavailable = models.filter(m => m.status === "unavailable").length;
@@ -174,8 +180,8 @@ export default function ModelsStatusPage() {
                                         <div className={cn(
                                             "w-2.5 h-2.5 rounded-full shrink-0",
                                             model.status === "available" ? "bg-green-500" :
-                                            model.status === "unavailable" ? "bg-red-500" :
-                                            "bg-yellow-500"
+                                                model.status === "unavailable" ? "bg-red-500" :
+                                                    "bg-yellow-500"
                                         )} />
                                         <div className="min-w-0 flex-1">
                                             <p className={cn(
@@ -201,8 +207,8 @@ export default function ModelsStatusPage() {
                                                 model.status === "available"
                                                     ? (isDark ? "bg-green-500/10 text-green-400" : "bg-green-500/10 text-green-600")
                                                     : model.status === "unavailable"
-                                                    ? (isDark ? "bg-red-500/10 text-red-400" : "bg-red-500/10 text-red-500")
-                                                    : (isDark ? "bg-yellow-500/10 text-yellow-400" : "bg-yellow-500/10 text-yellow-600")
+                                                        ? (isDark ? "bg-red-500/10 text-red-400" : "bg-red-500/10 text-red-500")
+                                                        : (isDark ? "bg-yellow-500/10 text-yellow-400" : "bg-yellow-500/10 text-yellow-600")
                                             )}
                                         >
                                             {model.status === "available" ? "Ready" : model.status === "unavailable" ? "Offline" : "Unknown"}

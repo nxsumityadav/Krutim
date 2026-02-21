@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "@/components/theme-provider";
@@ -16,7 +17,13 @@ export function MobileBottomNav() {
     const pathname = usePathname();
     const { resolvedTheme } = useTheme();
     const { isActiveChat } = useChatState();
-    const isDark = resolvedTheme === "dark";
+    const [mounted, setMounted] = React.useState(false);
+
+    React.useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    const isDark = mounted ? resolvedTheme === "dark" : false;
 
     // Hide when user is in an active chat (has messages)
     if (isActiveChat && pathname === "/chat") return null;

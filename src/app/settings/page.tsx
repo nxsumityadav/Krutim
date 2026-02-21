@@ -10,8 +10,14 @@ import { cn } from "@/lib/utils";
 export default function SettingsPage() {
     const [autoCheck, setAutoCheck] = useState<boolean>(true);
     const [loading, setLoading] = useState(true);
+    const [mounted, setMounted] = useState(false);
     const { theme, setTheme, resolvedTheme } = useTheme();
-    const isDark = resolvedTheme === "dark";
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    const isDark = mounted ? resolvedTheme === "dark" : false;
 
     useEffect(() => {
         const fetchConfig = async () => {
