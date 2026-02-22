@@ -6,6 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useTheme } from "@/components/theme-provider";
 import { cn } from "@/lib/utils";
+import { Sun, Moon, Monitor, Info } from "lucide-react";
 
 export default function SettingsPage() {
     const [autoCheck, setAutoCheck] = useState<boolean>(true);
@@ -45,9 +46,9 @@ export default function SettingsPage() {
     };
 
     const themeOptions = [
-        { value: "light", label: "Light", icon: "light_mode" },
-        { value: "dark", label: "Dark", icon: "dark_mode" },
-        { value: "auto", label: "Auto", icon: "contrast" },
+        { value: "light", label: "Light", icon: Sun },
+        { value: "dark", label: "Dark", icon: Moon },
+        { value: "auto", label: "Auto", icon: Monitor },
     ] as const;
 
     return (
@@ -85,12 +86,12 @@ export default function SettingsPage() {
                                         : "border-black/5 bg-transparent hover:border-black/15 dark:border-[#333] dark:bg-transparent dark:hover:border-[#444]"
                                 )}
                             >
-                                <span className={cn(
-                                    "material-symbols-rounded text-[22px]",
+                                <option.icon className={cn(
+                                    "w-[22px] h-[22px]",
                                     theme === option.value
                                         ? "text-blue-500"
                                         : "text-muted-foreground dark:text-foreground/50"
-                                )}>{option.icon}</span>
+                                )} />
                                 <span className={cn(
                                     "text-[13px] font-medium",
                                     theme === option.value
@@ -136,7 +137,7 @@ export default function SettingsPage() {
                         "flex items-start gap-2.5 p-3.5 rounded-xl text-[12px]",
                         "bg-black/[0.03] text-[var(--chat-text)]/70 dark:bg-white/5 dark:text-foreground/60"
                     )}>
-                        <span className="material-symbols-rounded text-[16px] mt-0.5 shrink-0">info</span>
+                        <Info className="w-4 h-4 mt-0.5 shrink-0" />
                         <p className="leading-relaxed">
                             Frequent checks may impact rate limits of certain providers.
                         </p>

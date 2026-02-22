@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Poppins } from "next/font/google";
+import { IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import "katex/dist/katex.min.css";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,10 +9,10 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { ChatStateProvider } from "@/components/chat-state-provider";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 
-const poppins = Poppins({
+const ibmPlexMono = IBM_Plex_Mono({
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700"],
-  variable: "--font-poppins",
+  variable: "--font-ibm-plex-mono",
 });
 
 const siteUrl = "https://krutim.uxsumit.com";
@@ -169,7 +169,6 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
         <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)" />
         <meta name="theme-color" content="#1A1A1A" media="(prefers-color-scheme: dark)" />
         <link rel="manifest" href="/manifest.webmanifest" />
@@ -188,7 +187,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={`${poppins.variable} font-sans bg-background text-foreground antialiased`}>
+      <body className={`${ibmPlexMono.variable} font-mono bg-background text-foreground antialiased`}>
         <ThemeProvider>
           <ChatStateProvider>
             <TooltipProvider>

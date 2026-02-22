@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "@/components/theme-provider";
 import { KrutimLogo } from "@/components/krutim-logo";
+import { MessageSquare, Bot, Settings } from "lucide-react";
 
 import {
     Sidebar,
@@ -42,7 +43,7 @@ export function AppSidebar() {
                             <SidebarMenuItem>
                                 <SidebarMenuButton asChild isActive={pathname === "/chat"}>
                                     <Link href="/chat">
-                                        <span className="material-symbols-rounded text-[20px]">chat</span>
+                                        <MessageSquare className="w-5 h-5" />
                                         <span>Home</span>
                                     </Link>
                                 </SidebarMenuButton>
@@ -50,7 +51,7 @@ export function AppSidebar() {
                             <SidebarMenuItem>
                                 <SidebarMenuButton asChild isActive={pathname === "/models"}>
                                     <Link href="/models">
-                                        <span className="material-symbols-rounded text-[20px]">memory</span>
+                                        <Bot className="w-5 h-5" />
                                         <span>Model Status</span>
                                     </Link>
                                 </SidebarMenuButton>
@@ -58,7 +59,7 @@ export function AppSidebar() {
                             <SidebarMenuItem>
                                 <SidebarMenuButton asChild isActive={pathname === "/settings"}>
                                     <Link href="/settings">
-                                        <span className="material-symbols-rounded text-[20px]">settings</span>
+                                        <Settings className="w-5 h-5" />
                                         <span>Settings</span>
                                     </Link>
                                 </SidebarMenuButton>

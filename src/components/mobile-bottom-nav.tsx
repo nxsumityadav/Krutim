@@ -6,11 +6,12 @@ import { usePathname } from "next/navigation";
 import { useTheme } from "@/components/theme-provider";
 import { useChatState } from "@/components/chat-state-provider";
 import { cn } from "@/lib/utils";
+import { Home, Bot, Settings } from "lucide-react";
 
 const navItems = [
-    { href: "/chat", label: "Home", icon: "home" },
-    { href: "/models", label: "Status", icon: "memory" },
-    { href: "/settings", label: "Settings", icon: "settings" },
+    { href: "/chat", label: "Home", icon: Home },
+    { href: "/models", label: "Status", icon: Bot },
+    { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 export function MobileBottomNav() {
@@ -43,15 +44,11 @@ export function MobileBottomNav() {
                                 : "text-[#171717]/40 dark:text-[#EAEAEA]/40"
                         )}
                     >
-                        <span
+                        <item.icon
                             className={cn(
-                                "material-symbols-rounded text-[24px]",
-                                isActive && "font-variation-settings: 'FILL' 1"
+                                "w-6 h-6",
                             )}
-                            style={isActive ? { fontVariationSettings: "'FILL' 1" } : undefined}
-                        >
-                            {item.icon}
-                        </span>
+                        />
                         <span className="text-[10px] font-medium leading-tight">
                             {item.label}
                         </span>

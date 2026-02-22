@@ -9,6 +9,7 @@ import rehypeRaw from "rehype-raw";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneLight, oneDark } from "react-syntax-highlighter/dist/cjs/styles/prism";
 import { cn } from "@/lib/utils";
+import { Copy, Check, Loader2, FileCode, Search, Code, FileText, ImageIcon, Calculator, Globe, Wrench, Terminal } from "lucide-react";
 
 function MermaidDiagram({ chart, isDark }: { chart: string; isDark: boolean }) {
     const containerRef = useRef<HTMLDivElement>(null);
@@ -97,13 +98,11 @@ function CodeBlock({ className, children, isDark, ...props }: any) {
         <div className="relative group my-3 rounded-xl overflow-hidden border border-black/5 dark:border-white/10">
             <div className="flex items-center justify-between px-4 py-2 bg-black/5 dark:bg-white/5 text-xs text-muted-foreground">
                 <span className="font-mono uppercase tracking-wider">{lang}</span>
-                <button
+                    <button
                     onClick={handleCopy}
                     className="flex items-center gap-1 text-xs hover:text-foreground transition-colors"
                 >
-                    <span className="material-symbols-rounded text-[14px]">
-                        {copied ? "check" : "content_copy"}
-                    </span>
+                    {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                     {copied ? "Copied" : "Copy"}
                 </button>
             </div>
@@ -147,15 +146,16 @@ const TOOL_CALL_PATTERNS = [
     /^\[(\w+)\]\s*(\{[^}]*\})$/,
 ];
 
-function getToolIcon(toolName: string): string {
+function getToolIcon(toolName: string): React.ReactNode {
     const name = toolName.toLowerCase();
-    if (name.includes("search") || name.includes("web")) return "travel_explore";
-    if (name.includes("code") || name.includes("exec")) return "code";
-    if (name.includes("file") || name.includes("read")) return "description";
-    if (name.includes("image") || name.includes("vision")) return "image";
-    if (name.includes("calc") || name.includes("math")) return "calculate";
-    if (name.includes("browse") || name.includes("url")) return "language";
-    return "build";
+    if (name.includes("search") || name.includes("web")) return <Search className="w-[18px] h-[18px]" />;
+    if (name.includes("code") || name.includes("exec")) return <Code className="w-[18px] h-[18px]" />;
+    if (name.includes("file") || name.includes("read")) return <FileText className="w-[18px] h-[18px]" />;
+    if (name.includes("image") || name.includes("vision")) return <ImageIcon className="w-[18px] h-[18px]" />;
+    if (name.includes("calc") || name.includes("math")) return <Calculator className="w-[18px] h-[18px]" />;
+    if (name.includes("browse") || name.includes("url")) return <Globe className="w-[18px] h-[18px]" />;
+    if (name.includes("terminal") || name.includes("shell")) return <Terminal className="w-[18px] h-[18px]" />;
+    return <Wrench className="w-[18px] h-[18px]" />;
 }
 
 function parseToolQuery(text: string): string | null {
@@ -199,12 +199,12 @@ function ToolCallBlock({ lines, isDark }: { lines: string[]; isDark: boolean }) 
                 ? "bg-white/5 border border-white/8"
                 : "bg-black/[0.03] border border-black/5"
         )}>
-            <div className={cn(
-                "flex items-center justify-center w-8 h-8 rounded-full shrink-0",
-                isDark ? "bg-blue-500/15 text-blue-400" : "bg-blue-500/10 text-blue-600"
-            )}>
-                <span className="material-symbols-rounded text-[18px]">{icon}</span>
-            </div>
+                <div className={cn(
+                    "flex items-center justify-center w-8 h-8 rounded-full shrink-0",
+                    isDark ? "bg-blue-500/15 text-blue-400" : "bg-blue-500/10 text-blue-600"
+                )}>
+                    {icon}
+                </div>
             <div className="min-w-0 flex-1">
                 <span className={cn(
                     "font-medium text-[13px]",
@@ -225,7 +225,7 @@ function ToolCallBlock({ lines, isDark }: { lines: string[]; isDark: boolean }) 
                 "shrink-0",
                 isDark ? "text-foreground/20" : "text-muted-foreground/40"
             )}>
-                <span className="material-symbols-rounded text-[16px] animate-spin" style={{ animationDuration: "2s" }}>progress_activity</span>
+                <Loader2 className="w-4 h-4 animate-spin" style={{ animationDuration: "2s" }} />
             </div>
         </div>
     );

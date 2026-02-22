@@ -8,6 +8,20 @@ import { MarkdownRenderer } from "@/components/markdown-renderer";
 import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { useTheme } from "@/components/theme-provider";
 import { useChatState } from "@/components/chat-state-provider";
+import { 
+  Brain, 
+  ChevronDown, 
+  Check, 
+  Trash2, 
+  Bot, 
+  RefreshCw, 
+  X, 
+  ImageIcon, 
+  Send,
+  Loader2,
+  Copy,
+  StopCircle
+} from "lucide-react";
 import { KrutimLogo } from "@/components/krutim-logo";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -122,7 +136,7 @@ function ThinkingBlock({
                     animate={{ opacity: [0.4, 1, 0.4] }}
                     transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
                 >
-                    <span className="material-symbols-rounded text-[16px]">psychology</span>
+                    <Brain className="w-4 h-4" />
                     <span>Thinking{elapsed > 0 ? ` for ${elapsed}s` : "..."}</span>
                 </motion.div>
 
@@ -152,14 +166,14 @@ function ThinkingBlock({
                     "text-muted-foreground/70 hover:text-muted-foreground dark:text-foreground/40 dark:hover:text-foreground/60"
                 )}
             >
-                <span className="material-symbols-rounded text-[14px]">psychology</span>
+                <Brain className="w-3.5 h-3.5" />
                 <span>Thought for {displayDuration}s</span>
                 <motion.span
-                    className="material-symbols-rounded text-[16px]"
+                    className="w-4 h-4"
                     animate={{ rotate: isOpen ? 90 : 0 }}
                     transition={{ duration: 0.15 }}
                 >
-                    chevron_right
+                    <ChevronDown className="w-4 h-4 -rotate-90" />
                 </motion.span>
             </button>
             <AnimatePresence>
@@ -336,6 +350,8 @@ export default function ChatPage() {
     };
 
     const handleImageFiles = async (files: FileList | File[]) => {
+        alert("Image input is not supported. This model does not support image input.");
+        return;
         const imageFiles = Array.from(files).filter(f => f.type.startsWith("image/"));
         if (imageFiles.length === 0) return;
         const base64Images = await Promise.all(imageFiles.map(f => fileToBase64(f)));
@@ -613,7 +629,6 @@ export default function ChatPage() {
             )}>
                 {mounted ? (
                     <>
-
                         {/* Centered Model Selector */}
                         <div className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center">
                             {/* Mobile Sheet (md:hidden) */}
@@ -624,7 +639,7 @@ export default function ChatPage() {
                                         "text-[var(--chat-text)] dark:text-foreground"
                                     )}>
                                         {selectedModel?.name || "Select model"}
-                                        <span className="material-symbols-rounded text-[24px]">expand_more</span>
+                                        <ChevronDown className="w-6 h-6" />
                                     </SheetTrigger>
                                     <SheetContent side="bottom" className={cn(
                                         "rounded-t-3xl pb-10 border-t-0 px-4 max-h-[80vh] overflow-y-auto",
@@ -665,7 +680,7 @@ export default function ChatPage() {
                                                             )}>{m.name}</span>
                                                         </div>
                                                         {selectedModel?.id === m.id && (
-                                                            <span className="material-symbols-rounded text-[20px]">check</span>
+                                                            <Check className="w-5 h-5" />
                                                         )}
                                                     </button>
                                                 </SheetClose>
@@ -727,7 +742,7 @@ export default function ChatPage() {
                                     "bg-black/5 text-[var(--chat-text)] dark:bg-[#2A2A2A] dark:text-foreground"
                                 )}
                             >
-                                <span className="material-symbols-rounded text-[22px]">delete</span>
+                                <Trash2 className="w-5 h-5" />
                             </Button>
                         </div>
                     </>
@@ -793,10 +808,10 @@ export default function ChatPage() {
                                                 "hidden",
                                                 "bg-white border border-black/5 dark:bg-[#242424] dark:border dark:border-[#333]"
                                             )}>
-                                                <span className={cn(
-                                                    "material-symbols-rounded text-[16px]",
+                                                <Bot className={cn(
+                                                    "w-4 h-4",
                                                     "text-[var(--chat-text)] dark:text-foreground"
-                                                )}>smart_toy</span>
+                                                )} />
                                             </div>
 
                                             <div className="flex-1 min-w-0 space-y-1">
@@ -846,7 +861,7 @@ export default function ChatPage() {
                                                         "text-[11px] mt-2 flex items-center gap-1",
                                                         "text-muted-foreground/60 dark:text-foreground/30"
                                                     )}>
-                                                        <span className="material-symbols-rounded text-[14px]">smart_toy</span>
+                                                        <Bot className="w-4 h-4" />
                                                         Prepared using {m.model}
                                                     </p>
                                                 )}
@@ -860,7 +875,7 @@ export default function ChatPage() {
                                                         )}
                                                         title="Regenerate with a different model"
                                                     >
-                                                        <span className="material-symbols-rounded text-[18px]">sync</span>
+                                                        <RefreshCw className="w-4 h-4" />
                                                     </button>
                                                     <button
                                                         onClick={() => handleCopy(m.content, i)}
@@ -870,9 +885,9 @@ export default function ChatPage() {
                                                         )}
                                                         title="Copy message"
                                                     >
-                                                        <span className="material-symbols-rounded text-[18px]">
-                                                            {copiedIndex === i ? "check" : "content_copy"}
-                                                        </span>
+                                                        <Copy className="w-[18px] h-[18px]">
+                                                            {copiedIndex === i ? <Check className="w-3 h-3" /> : "content_copy"}
+                                                        </Copy>
                                                     </button>
                                                 </div>
                                             </div>
@@ -918,7 +933,7 @@ export default function ChatPage() {
                                                     "bg-[#333] text-white dark:bg-[#555] dark:text-white"
                                                 )}
                                             >
-                                                <span className="material-symbols-rounded text-[12px]">close</span>
+                                                <X className="w-3 h-3" />
                                             </button>
                                         </div>
                                     ))}
@@ -947,17 +962,17 @@ export default function ChatPage() {
                             <div className="flex items-center gap-2 self-end pb-2 sm:pb-3 ml-2 relative z-10">
                                 <button
                                     type="button"
-                                    onClick={() => fileInputRef.current?.click()}
+                                    onClick={() => alert("Image input is not supported. This model does not support image input.")}
                                     className={cn(
-                                        "p-2 shrink-0 rounded-full transition-colors flex items-center justify-center",
-                                        "hover:bg-black/5 dark:hover:bg-white/10",
-                                        "text-muted-foreground",
+                                        "p-2 sm:p-2.5 rounded-full transition-all duration-200",
+                                        "text-[var(--chat-text)]/60 hover:text-[var(--chat-text)]/80 dark:text-foreground/60 dark:hover:text-foreground/80",
+                                        "hover:bg-black/5 dark:hover:bg-white/5",
                                         "disabled:opacity-50 disabled:cursor-not-allowed"
                                     )}
                                     disabled={isLoading}
-                                    title="Attach image"
+                                    title="Image input not supported"
                                 >
-                                    <span className="material-symbols-rounded text-[20px] sm:text-[22px]">image</span>
+                                    <ImageIcon className="w-5 h-5 sm:w-[22px] sm:h-[22px]" />
                                 </button>
                                 <input
                                     type="file"
@@ -983,10 +998,9 @@ export default function ChatPage() {
                                     )}
                                 >
                                     <span className={cn(
-                                        "material-symbols-rounded text-[18px] sm:text-[20px] translate-x-0.5",
                                         isLoading && "animate-pulse"
                                     )}>
-                                        {isLoading ? "stop" : "arrow_upward"}
+                                        {isLoading ? <StopCircle className="w-[18px] h-[18px] sm:w-5 sm:h-5" /> : <Send className="w-4 h-4 sm:w-5 sm:h-5 -translate-x-0.5" />}
                                     </span>
                                 </Button>
                             </div>

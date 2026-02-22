@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { Badge } from "@/components/ui/badge";
 import { useTheme } from "@/components/theme-provider";
 import { cn } from "@/lib/utils";
+import { ChevronDown } from "lucide-react";
 
 interface Model {
     id: string;
@@ -213,11 +214,11 @@ export default function ModelsStatusPage() {
                                         >
                                             {model.status === "available" ? "Ready" : model.status === "unavailable" ? "Offline" : "Unknown"}
                                         </Badge>
-                                        <span className={cn(
-                                            "material-symbols-rounded text-[18px] transition-transform duration-200",
+                                        <ChevronDown className={cn(
+                                            "w-[18px] h-[18px] transition-transform duration-200",
                                             isExpanded && "rotate-180",
                                             "text-[#737373]/50 dark:text-[#EAEAEA]/30"
-                                        )}>expand_more</span>
+                                        )} />
                                     </div>
                                 </button>
 
