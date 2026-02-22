@@ -228,11 +228,10 @@ export default function ChatPage() {
     const getGreeting = () => {
         if (!mounted) return "How can I help you today?";
         const hour = new Date().getHours();
-        if (hour < 5) return "How can I help you tonight?";
-        if (hour < 12) return "Good morning! How can I help?";
-        if (hour < 17) return "Good afternoon! How can I help?";
-        if (hour < 21) return "Good evening! How can I help?";
-        return "How can I help you tonight?";
+        if (hour >= 5 && hour < 12) return "Good morning! How can I help?";
+        if (hour >= 12 && hour < 17) return "Good afternoon! How can I help?";
+        if (hour >= 17 && hour < 21) return "Good evening! How can I help?";
+        return "Good late night! How can I help?";
     };
 
     useEffect(() => {
@@ -320,11 +319,6 @@ export default function ChatPage() {
     }, [setIsActiveChat]);
 
     useEffect(() => {
-        if (messages.length > 0) {
-            localStorage.setItem("current_chat_history", JSON.stringify(messages));
-        } else {
-            localStorage.removeItem("current_chat_history");
-        }
         setIsActiveChat(messages.length > 0);
     }, [messages, setIsActiveChat]);
 
