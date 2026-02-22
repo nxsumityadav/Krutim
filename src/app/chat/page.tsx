@@ -25,6 +25,8 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 interface Model {
     id: string;
@@ -202,8 +204,26 @@ export default function ChatPage() {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const reasoningStartRef = useRef<number | null>(null);
     const { resolvedTheme } = useTheme();
-    const { setIsActiveChat } = useChatState();
+    const { setIsActiveChat, isImageMode, setIsImageMode, currentSessionId, setCurrentSessionId } = useChatState();
     const isDark = resolvedTheme === "dark";
+
+    const fetchSessionMessages = async (sessionId: string) => {
+        const { data, error } = await supabase
+            .from("chat_messages")
+            .select("*")
+            .eq("session_id", sessionId)
+            .order("created_at", { ascending: true });
+
+        if (data && !error) {
+            setMessages(data.map(m => ({
+                role: m.role as "user" | "assistant",
+                content: m.content || "",
+                reasoning: m.reasoning || "",
+                images: m.images || [],
+                model: m.model || ""
+            })));
+        }
+    };
 
     const getGreeting = () => {
         if (!mounted) return "How can I help you today?";
@@ -245,6 +265,32 @@ export default function ChatPage() {
             const { data } = await supabase
                 .from("models")
                 .select("id, name, status, model_identifier");
+
+            // On load, also find or create a session
+            let activeSessionId = currentSessionId;
+            if (!activeSessionId) {
+                // Determine user tracking logic (for now anonymized relying on localStorage device ID)
+                let deviceId = localStorage.getItem("device_id");
+                if (!deviceId) {
+                    deviceId = crypto.randomUUID();
+                    localStorage.setItem("device_id", deviceId);
+                }
+
+                // Try fetching latest session or create new
+                const { data: sessionData } = await supabase
+                    .from("chat_sessions")
+                    .select("id")
+                    .order('created_at', { ascending: false })
+                    .limit(1)
+                    .single();
+
+                if (sessionData) {
+                    activeSessionId = sessionData.id;
+                    setCurrentSessionId(activeSessionId);
+                    await fetchSessionMessages(activeSessionId!);
+                }
+            }
+
             if (data) {
                 const sorted = [...data].sort((a: Model, b: Model) => (a.name || "").localeCompare(b.name || ""));
                 setModels(sorted);
@@ -290,7 +336,11 @@ export default function ChatPage() {
         }
     }, [messages, isLoading]);
 
-    const handleClearChat = () => {
+    const handleClearChat = async () => {
+        if (currentSessionId) {
+            await supabase.from("chat_sessions").delete().eq("id", currentSessionId);
+            setCurrentSessionId(null);
+        }
         setMessages([]);
     };
 
@@ -463,6 +513,18 @@ export default function ChatPage() {
                 return newMessages;
             });
         }
+
+        // Save assistant message to DB
+        if (currentSessionId) {
+            await supabase.from("chat_messages").insert({
+                session_id: currentSessionId,
+                role: assistantMessage.role,
+                content: assistantMessage.content,
+                reasoning: assistantMessage.reasoning,
+                images: assistantMessage.images,
+                model: assistantMessage.model
+            });
+        }
     };
 
     const handleRegenerate = async (index: number) => {
@@ -513,11 +575,41 @@ export default function ChatPage() {
         setIsLoading(true);
 
         try {
+            // Lazy load DB Session
+            let activeSessionId = currentSessionId;
+            if (!activeSessionId) {
+                const { data } = await supabase.from("chat_sessions").insert({}).select().single();
+                if (data) {
+                    activeSessionId = data.id;
+                    setCurrentSessionId(data.id);
+                }
+            }
+
+            // Save user message
+            if (activeSessionId) {
+                await supabase.from("chat_messages").insert({
+                    session_id: activeSessionId,
+                    role: newMessage.role,
+                    content: newMessage.content,
+                    images: newMessage.images
+                });
+            }
+
             await streamResponse(selectedModel.id, updatedMessages, selectedModel.name);
         } catch (error: any) {
             setMessages(prev => [...prev, { role: "assistant", content: `Error: ${error.message}`, model: selectedModel?.name }]);
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            const hasContent = input.trim() || pendingImages.length > 0;
+            if (hasContent && !isLoading) {
+                handleSendMessage(e as any);
+            }
         }
     };
 
@@ -529,6 +621,12 @@ export default function ChatPage() {
         return isLastAssistantStreaming(index) && !!m.reasoning && !m.content;
     };
 
+    const imageModelRegex = /dall-e|midjourney|flux|stable-diffusion|sd-|image/i;
+    const filteredModels = models.filter(m => {
+        const isImage = imageModelRegex.test(m.model_identifier);
+        return isImageMode ? isImage : !isImage;
+    });
+
     return (
         <div className="flex flex-col h-svh font-sans bg-[var(--chat-surface)] text-[var(--chat-text)] overflow-hidden">
             {/* Header */}
@@ -538,8 +636,33 @@ export default function ChatPage() {
             )}>
                 {mounted ? (
                     <>
-                        {/* Placeholder for left side to keep model selector centered */}
-                        <div className="w-10 shrink-0" />
+                        <div className="w-auto shrink-0 flex items-center gap-2">
+                            <div className="flex items-center gap-2">
+                                <Switch
+                                    id="image-mode"
+                                    checked={isImageMode}
+                                    onCheckedChange={(checked) => {
+                                        setIsImageMode(checked);
+                                        // Auto select first available when mode flips
+                                        const newFiltered = models.filter(m => {
+                                            const isImage = imageModelRegex.test(m.model_identifier);
+                                            return checked ? isImage : !isImage;
+                                        }).sort((a, b) => (a.status === 'available' ? -1 : 1) - (b.status === 'available' ? -1 : 1));
+
+                                        if (newFiltered.length > 0) {
+                                            setSelectedModel(newFiltered[0]);
+                                            localStorage.setItem("selected_model_id", newFiltered[0].id);
+                                        } else {
+                                            setSelectedModel(null);
+                                        }
+                                    }}
+                                    className="data-[state=checked]:bg-blue-500"
+                                />
+                                <Label htmlFor="image-mode" className="text-xs font-semibold cursor-pointer hidden sm:block">
+                                    IMG Mode
+                                </Label>
+                            </div>
+                        </div>
 
                         {/* Centered Model Selector */}
                         <div className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center">
@@ -564,7 +687,7 @@ export default function ChatPage() {
                                             )}>Select a model</SheetTitle>
                                         </SheetHeader>
                                         <div className="flex flex-col gap-2">
-                                            {[...models].sort((a, b) => (a.status === 'available' ? -1 : 1) - (b.status === 'available' ? -1 : 1)).map(m => (
+                                            {[...filteredModels].sort((a, b) => (a.status === 'available' ? -1 : 1) - (b.status === 'available' ? -1 : 1)).map(m => (
                                                 <SheetClose asChild key={m.id}>
                                                     <button
                                                         onClick={() => {
@@ -621,7 +744,7 @@ export default function ChatPage() {
                                     <SelectContent className={cn(
                                         "bg-popover border-border dark:bg-[#242424] dark:border-[#333]"
                                     )}>
-                                        {models.map(m => (
+                                        {filteredModels.map(m => (
                                             <SelectItem key={m.id} value={m.id} className={cn(
                                                 "cursor-pointer",
                                                 "focus:bg-muted dark:focus:bg-[#2A2A2A]"
@@ -860,69 +983,60 @@ export default function ChatPage() {
                                     e.target.style.height = 'auto';
                                     e.target.style.height = `${Math.min(e.target.scrollHeight, 200)}px`;
                                 }}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter' && !e.shiftKey) {
-                                        e.preventDefault();
-                                        const hasContent = input.trim() || pendingImages.length > 0;
-                                        if (hasContent && !isLoading) {
-                                            handleSendMessage(e as any);
-                                        }
-                                    }
-                                }}
+                                onKeyDown={handleKeyDown}
                                 onPaste={handlePaste}
-                                placeholder="Ask anything..."
-                                data-gramm="false"
-                                data-gramm_editor="false"
-                                data-enable-grammarly="false"
-                                className={cn(
-                                    "w-full bg-transparent border-none focus-visible:ring-0 text-[16px] placeholder:text-[16px] px-2 py-1 resize-none outline-none min-h-[48px] max-h-[200px] overflow-y-auto",
-                                    "placeholder:text-muted-foreground text-[var(--chat-text)] dark:placeholder:text-muted-foreground dark:text-foreground"
-                                )}
+                                placeholder={isLoading ? "Please wait..." : "Type a message..."}
                                 disabled={isLoading}
+                                className={cn(
+                                    "flex-1 bg-transparent resize-none outline-none max-h-[200px] py-3 text-[15px] leading-relaxed relative z-10",
+                                    "placeholder:text-muted-foreground/60 transition-all",
+                                    "disabled:opacity-50 disabled:cursor-not-allowed"
+                                )}
                                 rows={1}
                             />
-
-                            {/* Hidden file input */}
-                            <input
-                                ref={fileInputRef}
-                                type="file"
-                                accept="image/*"
-                                multiple
-                                className="hidden"
-                                onChange={(e) => {
-                                    if (e.target.files) handleImageFiles(e.target.files);
-                                    e.target.value = "";
-                                }}
-                            />
-
-                            <div className="flex items-center justify-between mt-1">
-                                {/* Attach image button */}
+                            <div className="flex items-center gap-2 self-end pb-2 sm:pb-3 ml-2 relative z-10">
                                 <button
                                     type="button"
                                     onClick={() => fileInputRef.current?.click()}
                                     className={cn(
-                                        "p-1.5 rounded-full transition-colors",
-                                        "text-[#737373] hover:text-[#171717] dark:text-[#EAEAEA]/40 dark:hover:text-[#EAEAEA]/70"
+                                        "p-2 shrink-0 rounded-full transition-colors flex items-center justify-center",
+                                        "hover:bg-black/5 dark:hover:bg-white/10",
+                                        "text-muted-foreground",
+                                        "disabled:opacity-50 disabled:cursor-not-allowed"
                                     )}
+                                    disabled={isLoading}
                                     title="Attach image"
                                 >
-                                    <span className="material-symbols-rounded text-[20px]">add_photo_alternate</span>
+                                    <span className="material-symbols-rounded text-[20px] sm:text-[22px]">image</span>
                                 </button>
-
+                                <input
+                                    type="file"
+                                    ref={fileInputRef}
+                                    onChange={(e) => {
+                                        if (e.target.files) handleImageFiles(e.target.files);
+                                        e.target.value = "";
+                                    }}
+                                    accept="image/*"
+                                    multiple
+                                    className="hidden"
+                                    disabled={isLoading}
+                                />
                                 <Button
                                     type="submit"
-                                    size="icon"
                                     disabled={(!input.trim() && pendingImages.length === 0) || isLoading}
+                                    size="icon"
                                     className={cn(
-                                        "h-10 w-10 shrink-0 rounded-full transition-all",
+                                        "h-8 w-8 sm:h-9 sm:w-9 rounded-full shrink-0 transition-all duration-200",
                                         (input.trim() || pendingImages.length > 0)
-                                            ? ("bg-[#171717] hover:bg-[#333] text-white dark:bg-white dark:hover:bg-white/90 dark:text-black")
-                                            : ("bg-[#E5E5E5] text-muted-foreground dark:bg-[#333] dark:text-muted-foreground"),
-                                        isLoading && "opacity-50 cursor-not-allowed"
+                                            ? "bg-black text-white hover:bg-black/80 dark:bg-white dark:text-black dark:hover:bg-white/80 scale-100 opacity-100"
+                                            : "bg-black/5 text-black/40 dark:bg-white/10 dark:text-white/40 scale-95 opacity-80"
                                     )}
                                 >
-                                    <span className="material-symbols-rounded text-[20px]">
-                                        arrow_upward
+                                    <span className={cn(
+                                        "material-symbols-rounded text-[18px] sm:text-[20px] translate-x-0.5",
+                                        isLoading && "animate-pulse"
+                                    )}>
+                                        {isLoading ? "stop" : "arrow_upward"}
                                     </span>
                                 </Button>
                             </div>
