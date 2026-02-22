@@ -240,26 +240,7 @@ export default function ChatPage() {
 
     useEffect(() => {
         if (!mounted) return;
-        // Local cache loading for chat history is disabled to prevent hydration issues
-        /*
-        const savedChat = localStorage.getItem("current_chat_history");
-        if (savedChat) {
-            try {
-                const parsed: Message[] = JSON.parse(savedChat);
-                const cleaned = parsed.map(m => {
-                    if (m.role === "assistant" && m.content && m.content.includes("<think>")) {
-                        const { reasoning, content } = parseThinkTags(m.content);
-                        return { ...m, content, reasoning: reasoning || m.reasoning || "" };
-                    }
-                    return m;
-                });
-                setMessages(cleaned);
-            } catch {
-                setMessages([]);
-            }
-        }
-        */
-
+        // Local cache loading for chat history is disabled entirely in favor of Supabase backend session tracking.
         const fetchModels = async () => {
             const { data } = await supabase
                 .from("models")

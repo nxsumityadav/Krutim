@@ -1,8 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
-const CATCLAW_KEY = "sk-BtKsVhNLErn5elGarqj7tzi35g6GCGtRYcMy4TuVQCFCtIgc";
-const CATCLAW_BASE = "https://www.catclawai.top/v1";
+const CATCLAW_KEY = Deno.env.get("CATCLAW_KEY");
+const CATCLAW_BASE = Deno.env.get("CATCLAW_BASE") ?? "https://www.catclawai.top/v1";
+
+if (!CATCLAW_KEY) {
+    throw new Error("Missing CATCLAW_KEY environment variable. Please configure it in Supabase Secrets.");
+}
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
