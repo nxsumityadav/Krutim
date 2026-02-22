@@ -204,7 +204,7 @@ export default function ChatPage() {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const reasoningStartRef = useRef<number | null>(null);
     const { resolvedTheme } = useTheme();
-    const { setIsActiveChat, isImageMode, setIsImageMode, currentSessionId, setCurrentSessionId } = useChatState();
+    const { setIsActiveChat, currentSessionId, setCurrentSessionId } = useChatState();
     const isDark = resolvedTheme === "dark";
 
     const fetchSessionMessages = async (sessionId: string) => {
@@ -277,7 +277,8 @@ export default function ChatPage() {
                 if (sorted.length > 0) {
                     const savedModelId = localStorage.getItem("selected_model_id");
                     const savedModel = savedModelId ? sorted.find((m: Model) => m.id === savedModelId) : null;
-                    setSelectedModel(savedModel || sorted[0]);
+                    const defaultModel = sorted.find((m: Model) => m.model_identifier === "grok-4.1-thinking");
+                    setSelectedModel(savedModel || defaultModel || sorted[0]);
                 }
             }
         };
@@ -391,7 +392,6 @@ export default function ChatPage() {
                     }
                     return { role: m.role, content: m.content };
                 }),
-                isImageMode,
             }),
         });
 
@@ -613,33 +613,6 @@ export default function ChatPage() {
             )}>
                 {mounted ? (
                     <>
-                        <div className="w-auto shrink-0 flex items-center gap-2">
-                            <div className="flex items-center gap-2">
-                                <Switch
-                                    id="image-mode"
-                                    checked={isImageMode}
-                                    onCheckedChange={(checked) => {
-                                        setIsImageMode(checked);
-                                        // Removed auto-selection logic based on image mode
-                                        // const newFiltered = models.filter(m => {
-                                        //     const isImage = imageModelRegex.test(m.model_identifier);
-                                        //     return checked ? isImage : !isImage;
-                                        // }).sort((a, b) => (a.status === 'available' ? -1 : 1) - (b.status === 'available' ? -1 : 1));
-
-                                        // if (newFiltered.length > 0) {
-                                        //     setSelectedModel(newFiltered[0]);
-                                        //     localStorage.setItem("selected_model_id", newFiltered[0].id);
-                                        // } else {
-                                        //     setSelectedModel(null);
-                                        // }
-                                    }}
-                                    className="data-[state=checked]:bg-blue-500"
-                                />
-                                <Label htmlFor="image-mode" className="text-xs font-semibold cursor-pointer hidden sm:block">
-                                    IMG Mode
-                                </Label>
-                            </div>
-                        </div>
 
                         {/* Centered Model Selector */}
                         <div className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center">
