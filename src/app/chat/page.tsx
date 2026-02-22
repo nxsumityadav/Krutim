@@ -406,6 +406,14 @@ export default function ChatPage() {
                             assistantMessage.reasoning = (assistantMessage.reasoning || "") + delta.reasoning_content;
                         }
 
+                        // Handle images array or image_url strings directly in delta
+                        if (delta.images && Array.isArray(delta.images)) {
+                            assistantMessage.images = [...(assistantMessage.images || []), ...delta.images];
+                        }
+                        if (delta.image_url && typeof delta.image_url === 'string') {
+                            assistantMessage.images = [...(assistantMessage.images || []), delta.image_url];
+                        }
+
                         if (delta.content) {
                             if (hasReasoningContentField) {
                                 // Model uses separate reasoning field — content is clean
@@ -731,6 +739,18 @@ export default function ChatPage() {
 
                                                 {/* Message content */}
                                                 <div className="w-full">
+                                                    {m.images && m.images.length > 0 && (
+                                                        <div className="flex flex-wrap gap-2 mb-3">
+                                                            {m.images.map((img, imgIdx) => (
+                                                                <img
+                                                                    key={imgIdx}
+                                                                    src={img}
+                                                                    alt={`Generated ${imgIdx + 1}`}
+                                                                    className="max-w-[250px] max-h-[250px] rounded-xl object-cover border border-black/5 dark:border-white/10"
+                                                                />
+                                                            ))}
+                                                        </div>
+                                                    )}
                                                     {m.content ? (
                                                         <div className={cn(
                                                             "text-[15px] leading-relaxed",

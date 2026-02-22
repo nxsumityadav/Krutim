@@ -31,62 +31,118 @@ serve(async (req) => {
 
         if (dbError || !model) throw new Error('Model not found')
 
-        // 2. Perform streaming fetch to CatClaw
-        const response = await fetch(`${CATCLAW_BASE}/chat/completions`, {
-            method: "POST",
-            headers: {
-                "Authorization": `Bearer ${CATCLAW_KEY}`,
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                model: model.model_identifier,
-                messages: messages,
-                stream: true // ENABLE STREAMING
-            }),
-        })
+        const isImageModel = /dall-e|midjourney|flux|stable-diffusion|sd-|image/i.test(model.model_identifier);
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            return new Response(JSON.stringify({ error: errorText }), {
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                status: response.status,
+        if (isImageModel) {
+            // Find the last user message for the prompt
+            const lastUserMessage = messages.reverse().find((m: any) => m.role === 'user');
+            const prompt = lastUserMessage?.content || "A beautiful image";
+
+            const response = await fetch(`${CATCLAW_BASE}/images/generations`, {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${CATCLAW_KEY}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    model: model.model_identifier,
+                    prompt: prompt,
+                    // Optionally ask for 1 image depending on the model
+                    n: 1,
+                }),
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                return new Response(JSON.stringify({ error: errorText }), {
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                    status: response.status,
+                });
+            }
+
+            const jsonResponse = await response.json();
+            const imageUrls = jsonResponse.data?.map((d: any) => d.url) || [];
+
+            // Mock SSE stream to match chat/completions frontend logic
+            const encoder = new TextEncoder();
+            const stream = new ReadableStream({
+                start(controller) {
+                    const chunk = {
+                        choices: [{ delta: { images: imageUrls } }]
+                    };
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`));
+                    controller.enqueue(encoder.encode(`data: [DONE]\n\n`));
+                    controller.close();
+                }
+            });
+
+            return new Response(stream, {
+                headers: {
+                    ...corsHeaders,
+                    'Content-Type': 'text/event-stream',
+                    'Cache-Control': 'no-cache',
+                    'Connection': 'keep-alive',
+                },
+            });
+
+        } else {
+            // 2. Perform streaming fetch to CatClaw for regular chat completions
+            const response = await fetch(`${CATCLAW_BASE}/chat/completions`, {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${CATCLAW_KEY}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    model: model.model_identifier,
+                    messages: messages,
+                    stream: true // ENABLE STREAMING
+                }),
             })
-        }
 
-        // 3. Setup streaming response
-        const stream = new ReadableStream({
-            async start(controller) {
-                const reader = response.body?.getReader();
-                if (!reader) {
-                    controller.close();
-                    return;
-                }
+            if (!response.ok) {
+                const errorText = await response.text();
+                return new Response(JSON.stringify({ error: errorText }), {
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                    status: response.status,
+                })
+            }
 
-                const decoder = new TextDecoder();
-                try {
-                    while (true) {
-                        const { done, value } = await reader.read();
-                        if (done) break;
-
-                        // Just forward the chunks from CatClaw
-                        controller.enqueue(value);
+            // 3. Setup streaming response
+            const stream = new ReadableStream({
+                async start(controller) {
+                    const reader = response.body?.getReader();
+                    if (!reader) {
+                        controller.close();
+                        return;
                     }
-                } catch (err) {
-                    controller.error(err);
-                } finally {
-                    controller.close();
-                }
-            },
-        });
 
-        return new Response(stream, {
-            headers: {
-                ...corsHeaders,
-                'Content-Type': 'text/event-stream',
-                'Cache-Control': 'no-cache',
-                'Connection': 'keep-alive',
-            },
-        });
+                    const decoder = new TextDecoder();
+                    try {
+                        while (true) {
+                            const { done, value } = await reader.read();
+                            if (done) break;
+
+                            // Just forward the chunks from CatClaw
+                            controller.enqueue(value);
+                        }
+                    } catch (err) {
+                        controller.error(err);
+                    } finally {
+                        controller.close();
+                    }
+                },
+            });
+
+            return new Response(stream, {
+                headers: {
+                    ...corsHeaders,
+                    'Content-Type': 'text/event-stream',
+                    'Cache-Control': 'no-cache',
+                    'Connection': 'keep-alive',
+                },
+            });
+        }
 
     } catch (error) {
         return new Response(JSON.stringify({ error: error.message }), {

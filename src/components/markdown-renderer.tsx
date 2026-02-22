@@ -5,6 +5,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
+import rehypeRaw from "rehype-raw";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneLight, oneDark } from "react-syntax-highlighter/dist/cjs/styles/prism";
 import { cn } from "@/lib/utils";
@@ -296,7 +297,7 @@ export function MarkdownRenderer({ content, className, isDark = false }: Markdow
                     <ReactMarkdown
                         key={idx}
                         remarkPlugins={[remarkGfm, remarkMath]}
-                        rehypePlugins={[rehypeKatex]}
+                        rehypePlugins={[rehypeRaw, rehypeKatex]}
                         components={{
                             code({ className, children, ...props }: any) {
                                 const match = /language-(\w+)/.exec(className || "");
