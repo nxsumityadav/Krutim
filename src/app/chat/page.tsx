@@ -416,6 +416,7 @@ export default function ChatPage() {
                     }
                     return { role: m.role, content: m.content };
                 }),
+                isImageMode,
             }),
         });
 
@@ -621,11 +622,12 @@ export default function ChatPage() {
         return isLastAssistantStreaming(index) && !!m.reasoning && !m.content;
     };
 
-    const imageModelRegex = /dall-e|midjourney|flux|stable-diffusion|sd-|image/i;
-    const filteredModels = models.filter(m => {
-        const isImage = imageModelRegex.test(m.model_identifier);
-        return isImageMode ? isImage : !isImage;
-    });
+    // Removed filtering logic for models based on isImageMode
+    // const imageModelRegex = /dall-e|midjourney|flux|stable-diffusion|sd-|image/i;
+    // const filteredModels = models.filter(m => {
+    //     const isImage = imageModelRegex.test(m.model_identifier);
+    //     return isImageMode ? isImage : !isImage;
+    // });
 
     return (
         <div className="flex flex-col h-svh font-sans bg-[var(--chat-surface)] text-[var(--chat-text)] overflow-hidden">
@@ -643,18 +645,18 @@ export default function ChatPage() {
                                     checked={isImageMode}
                                     onCheckedChange={(checked) => {
                                         setIsImageMode(checked);
-                                        // Auto select first available when mode flips
-                                        const newFiltered = models.filter(m => {
-                                            const isImage = imageModelRegex.test(m.model_identifier);
-                                            return checked ? isImage : !isImage;
-                                        }).sort((a, b) => (a.status === 'available' ? -1 : 1) - (b.status === 'available' ? -1 : 1));
+                                        // Removed auto-selection logic based on image mode
+                                        // const newFiltered = models.filter(m => {
+                                        //     const isImage = imageModelRegex.test(m.model_identifier);
+                                        //     return checked ? isImage : !isImage;
+                                        // }).sort((a, b) => (a.status === 'available' ? -1 : 1) - (b.status === 'available' ? -1 : 1));
 
-                                        if (newFiltered.length > 0) {
-                                            setSelectedModel(newFiltered[0]);
-                                            localStorage.setItem("selected_model_id", newFiltered[0].id);
-                                        } else {
-                                            setSelectedModel(null);
-                                        }
+                                        // if (newFiltered.length > 0) {
+                                        //     setSelectedModel(newFiltered[0]);
+                                        //     localStorage.setItem("selected_model_id", newFiltered[0].id);
+                                        // } else {
+                                        //     setSelectedModel(null);
+                                        // }
                                     }}
                                     className="data-[state=checked]:bg-blue-500"
                                 />
@@ -687,7 +689,7 @@ export default function ChatPage() {
                                             )}>Select a model</SheetTitle>
                                         </SheetHeader>
                                         <div className="flex flex-col gap-2">
-                                            {[...filteredModels].sort((a, b) => (a.status === 'available' ? -1 : 1) - (b.status === 'available' ? -1 : 1)).map(m => (
+                                            {[...models].sort((a, b) => (a.status === 'available' ? -1 : 1) - (b.status === 'available' ? -1 : 1)).map(m => (
                                                 <SheetClose asChild key={m.id}>
                                                     <button
                                                         onClick={() => {
@@ -744,7 +746,7 @@ export default function ChatPage() {
                                     <SelectContent className={cn(
                                         "bg-popover border-border dark:bg-[#242424] dark:border-[#333]"
                                     )}>
-                                        {filteredModels.map(m => (
+                                        {models.map(m => (
                                             <SelectItem key={m.id} value={m.id} className={cn(
                                                 "cursor-pointer",
                                                 "focus:bg-muted dark:focus:bg-[#2A2A2A]"

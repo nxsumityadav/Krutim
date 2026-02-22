@@ -20,7 +20,7 @@ serve(async (req) => {
             Deno.env.get('SUPABASE_ANON_KEY') ?? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ybXR2bnpiamRweWpndHp2dmpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2NDM4NjgsImV4cCI6MjA4NzIxOTg2OH0.4_lD8EPuhSyDQsaoVpSFVbb4eMUqCG1UJxJyIC9bOmY'
         )
 
-        const { model_id, messages } = await req.json()
+        const { model_id, messages, isImageMode } = await req.json()
 
         // 1. Fetch the model identifier
         const { data: model, error: dbError } = await supabaseClient
@@ -31,7 +31,7 @@ serve(async (req) => {
 
         if (dbError || !model) throw new Error('Model not found')
 
-        const isImageModel = /dall-e|midjourney|flux|stable-diffusion|sd-|image/i.test(model.model_identifier);
+        const isImageModel = isImageMode === true || /dall-e|midjourney|flux|stable-diffusion|sd-|image/i.test(model.model_identifier);
 
         if (isImageModel) {
             // Find the last user message for the prompt
